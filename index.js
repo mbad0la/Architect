@@ -15,13 +15,25 @@ class Wire extends EventEmitter {
 
     this.signal = newSignal
 
-    if (oldSignal != this.signal) this.emit('change')
+    if (oldSignal != this.signal) this.emit('signal')
   }
 
-  getSignal() {
-    return this.signal
+  getSignal(character = false) {
+    if (character) {
+      return String(this.signal)
+    } else {
+      return this.signal
+    }
   }
 
+}
+
+function wireSet(n) {
+  let wires = []
+  for(let i = 0; i < n ; i++) {
+    wires.push(new Wire())
+  }
+  return wires
 }
 
 
@@ -31,12 +43,12 @@ class AndGate {
     this.x = x
     this.y = y
     this.z  = z
-    this.react = this.react.bind(this)
-    x.on('change', this.react)
-    y.on('change', this.react)
+    this.hardware = this.hardware.bind(this)
+    x.on('signal', this.hardware)
+    y.on('signal', this.hardware)
   }
 
-  react() {
+  hardware() {
     let xSig = this.x.getSignal()
     let ySig = this.y.getSignal()
     if (xSig === undefined || ySig === undefined) {
@@ -52,12 +64,12 @@ class OrGate {
     this.x = x
     this.y = y
     this.z  = z
-    this.react = this.react.bind(this)
-    x.on('change', this.react)
-    y.on('change', this.react)
+    this.hardware = this.hardware.bind(this)
+    x.on('signal', this.hardware)
+    y.on('signal', this.hardware)
   }
 
-  react() {
+  hardware() {
     let xSig = this.x.getSignal()
     let ySig = this.y.getSignal()
     if (xSig === undefined || ySig === undefined) {
@@ -72,11 +84,11 @@ class NotGate {
   constructor(x, y) {
     this.x = x
     this.y = y
-    this.react = this.react.bind(this)
-    x.on('change', this.react)
+    this.hardware = this.hardware.bind(this)
+    x.on('signal', this.hardware)
   }
 
-  react() {
+  hardware() {
     let xSig = this.x.getSignal()
     if (xSig === undefined) {
       this.y.propagateSignal(undefined)
@@ -91,12 +103,12 @@ class XorGate {
     this.x = x
     this.y = y
     this.z  = z
-    this.react = this.react.bind(this)
-    x.on('change', this.react)
-    y.on('change', this.react)
+    this.hardware = this.hardware.bind(this)
+    x.on('signal', this.hardware)
+    y.on('signal', this.hardware)
   }
 
-  react() {
+  hardware() {
     let xSig = this.x.getSignal()
     let ySig = this.y.getSignal()
     if (xSig === undefined || ySig === undefined) {
@@ -111,6 +123,39 @@ class HalfAdder {
   constructor(x, y, s, c) {
     const sum = new XorGate(x, y, s)
     const carry = new AndGate(x, y, c)
+  }
+
+}
+
+class FullAdder {
+
+  constructor(x, y, z, s, c) {
+    const partialSum = new Wire()
+    const partialCarryOne = new Wire()
+    const partialCarryTwo = new Wire()
+    const halfAdderOne = new HalfAdder(x, y, partialSum, partialCarryOne)
+    const halfAdderTwo = new HalfAdder(partialSum, z, s, partialCarryTwo)
+    const carryOr = new OrGate(partialCarryOne, partialCarryTwo, c)
+  }
+
+}
+
+class PipoAdder {
+
+  constructor(a, b, s, c) {
+    let size = a.length
+    this.carries = wireSet(size)
+    this.components = []
+    if (size > 1) {
+      this.components.push(new FullAdder(a[0], b[0], this.carries[0], s[0], this.carries[1]))
+      for(let i = 1; i < size - 1; i++) {
+        this.components.push(new FullAdder(a[i], b[i], this.carries[i], s[i], this.carries[i+1]))
+      }
+      this.components.push(new FullAdder(a[size-1], b[size-1], this.carries[size-1], s[size-1], c))
+    } else {
+      this.components.push(new FullAdder(a[0], b[0], this.carries[0], s[0], c))
+    }
+    this.carries[0].propagateSignal(0)
   }
 
 }
@@ -137,24 +182,18 @@ class ManageIO {
 
 }
 
+const a = wireSet(4)
+const b = wireSet(4)
+const s = wireSet(4)
+const c = new Wire()
 
-const xWire = new Wire()
-const yWire = new Wire()
-const zWire = new Wire()
-const kWire = new Wire()
-let ioManagerOne = new ManageIO({in: [xWire, yWire], out: [zWire, kWire]}, ['sum', 'carry'])
+const fourBitAdder = new PipoAdder(a, b, s, c)
 
-const myAdder = new HalfAdder(xWire, yWire, zWire, kWire)
 
-// xWire.propagateSignal(1)
-// yWire.propagateSignal(1)
-// console.log('X : ' + xWire.getSignal() + ' Y : ' + yWire.getSignal() + ' S : ' + zWire.getSignal() + ' C : ' + kWire.getSignal())
-// yWire.propagateSignal(1)
-// console.log('X : ' + xWire.getSignal() + ' Y : ' + yWire.getSignal() + ' S : ' + zWire.getSignal() + ' C : ' + kWire.getSignal())
-// yWire.propagateSignal(undefined)
-// console.log('X : ' + xWire.getSignal() + ' Y : ' + yWire.getSignal() + ' S : ' + zWire.getSignal() + ' C : ' + kWire.getSignal())
-// yWire.propagateSignal(0)
-// console.log('X : ' + xWire.getSignal() + ' Y : ' + yWire.getSignal() + ' S : ' + zWire.getSignal() + ' C : ' + kWire.getSignal())
-ioManagerOne.results([1,1])
-ioManagerOne.results([1,undefined])
-ioManagerOne.results([1,0])
+for(let j = 0; j < 4; j++) {
+  a[j].propagateSignal(Math.floor(Math.random() * 2))
+  b[j].propagateSignal(Math.floor(Math.random() * 2))
+}
+console.log(a[3].getSignal(true) + a[2].getSignal(true) + a[1].getSignal(true) + a[0].getSignal(true) + ' + ' + b[3].getSignal(true) + b[2].getSignal(true) + b[1].getSignal(true) + b[0].getSignal(true) + ' ->')
+console.log('Sum : ' + s[3].getSignal(true) + s[2].getSignal(true) + s[1].getSignal(true) + s[0].getSignal(true))
+console.log('Carry : ' + c.getSignal(true))
