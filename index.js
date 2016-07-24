@@ -2,10 +2,10 @@ var EventEmitter = require('events')
 
 class Wire extends EventEmitter {
 
-  constructor() {
+  constructor(sig) {
     super()
 
-    this.signal = undefined
+    this.signal = sig
     this.propagateSignal = this.propagateSignal.bind(this)
     this.getSignal = this.getSignal.bind(this)
   }
@@ -160,40 +160,53 @@ class PipoAdder {
 
 }
 
-class ManageIO {
+class Pulse extends Wire {
 
-  constructor(args, format) {
-    this.in = args.in
-    this.out = args.out
-    this.format = format
-    this.results = this.results.bind(this)
+  constructor(t, s, i) {
+    super(i)
+
+    this.timePeriod = t
+    this.state = s
+    this.alter = this.alter.bind(this)
+    this.on = this.on.bind(this)
+    this.off = this.off.bind(this)
+    setInterval(this.alter, t)
   }
 
-  results(inputArray) {
-    let out = {}
-    this.in.forEach((wire, i) => {
-      wire.propagateSignal(inputArray[i])
-    })
-    this.out.forEach((wire, i) => {
-      out[this.format[i]] = wire.getSignal()
-    })
-    console.log(out)
+  alter() {
+    if (this.state) {
+      this.propagateSignal(Number(!this.getSignal()))
+    }
+  }
+
+  on() {
+    this.state = true
+  }
+
+  off() {
+    this.state = false
   }
 
 }
 
-const a = wireSet(4)
-const b = wireSet(4)
-const s = wireSet(4)
-const c = new Wire()
+const newNode = new Wire()
+const clock = new Pulse(1000, false, 0)
 
-const fourBitAdder = new PipoAdder(a, b, s, c)
-
-
-for(let j = 0; j < 4; j++) {
-  a[j].propagateSignal(Math.floor(Math.random() * 2))
-  b[j].propagateSignal(Math.floor(Math.random() * 2))
-}
-console.log(a[3].getSignal(true) + a[2].getSignal(true) + a[1].getSignal(true) + a[0].getSignal(true) + ' + ' + b[3].getSignal(true) + b[2].getSignal(true) + b[1].getSignal(true) + b[0].getSignal(true) + ' ->')
-console.log('Sum : ' + s[3].getSignal(true) + s[2].getSignal(true) + s[1].getSignal(true) + s[0].getSignal(true))
-console.log('Carry : ' + c.getSignal(true))
+clock.on('signal', function() {
+  console.log(clock.getSignal())
+})
+// const a = wireSet(4)
+// const b = wireSet(4)
+// const s = wireSet(4)
+// const c = new Wire()
+//
+// const fourBitAdder = new PipoAdder(a, b, s, c)
+//
+//
+// for(let j = 0; j < 4; j++) {
+//   a[j].propagateSignal(Math.floor(Math.random() * 2))
+//   b[j].propagateSignal(Math.floor(Math.random() * 2))
+// }
+// console.log(a[3].getSignal(true) + a[2].getSignal(true) + a[1].getSignal(true) + a[0].getSignal(true) + ' + ' + b[3].getSignal(true) + b[2].getSignal(true) + b[1].getSignal(true) + b[0].getSignal(true) + ' ->')
+// console.log('Sum : ' + s[3].getSignal(true) + s[2].getSignal(true) + s[1].getSignal(true) + s[0].getSignal(true))
+// console.log('Carry : ' + c.getSignal(true))
