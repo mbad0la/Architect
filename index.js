@@ -5,4 +5,6 @@ module.exports = function(path) {
   return require('./Combinational/arithmetics')
   if (path == 'Connectors')
   return require('./Connectors/transport')
+  if (path == 'Base')
+  return require('./Sequential/baseblocks')
 }

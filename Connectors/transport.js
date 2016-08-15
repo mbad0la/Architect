@@ -26,39 +26,44 @@ class Wire extends EventEmitter {
 
 class Pulse extends Wire {
 
-  constructor(t, s, i) {
-    super(i)
+  constructor(t, i) {
+    super()
 
+    this.i = i
     this.timePeriod = t
-    this.state = s
     this.alter = this.alter.bind(this)
     this.switchOn = this.switchOn.bind(this)
     this.switchOff = this.switchOff.bind(this)
-    setInterval(this.alter, t)
+    this.interval = undefined
   }
 
   alter() {
-    if (this.state) {
-      this.propagateSignal(Number(!this.getSignal()))
-    }
+    this.propagateSignal(Number(!this.signal))
   }
 
   switchOn() {
-    this.state = true
+    if (!this.interval) {
+      this.signal = this.i
+      this.interval = setInterval(this.alter, this.timePeriod)
+    }
   }
 
   switchOff() {
-    this.state = false
+    if (this.interval) {
+      clearInterval(this.interval)
+      this.signal = undefined
+      this.interval = undefined
+    }
   }
 
 }
 
-function wireSet(n) {
-  let wires = []
+function wires(n) {
+  let wireSet = []
   for(let i = 0; i < n ; i++) {
-    wires.push(new Wire())
+    wireSet.push(new Wire())
   }
-  return wires
+  return wireSet
 }
 
-module.exports = { Wire, Pulse, wireSet }
+module.exports = { Wire, Pulse, wires }

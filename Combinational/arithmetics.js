@@ -1,5 +1,5 @@
 const { AndGate, XorGate, OrGate } = require('./gates')
-const { Wire, wireSet } = require('../Connectors/transport')
+const { Wire, wires } = require('../Connectors/transport')
 
 class HalfAdder {
 
@@ -14,11 +14,11 @@ class HalfAdder {
 class FullAdder {
 
   constructor(x, y, z, s, c) {
-    this.internalWiring = wireSet(3)
+    this.internalWiring = wires(3)
     this.components = []
-    this.components.push(new HalfAdder(x, y, internalWiring[0], internalWiring[1]))
-    this.components.push(new HalfAdder(internalWiring[0], z, s, internalWiring[2]))
-    this.components.push(new OrGate(internalWiring[1], internalWiring[2], c))
+    this.components.push(new HalfAdder(x, y, this.internalWiring[0], this.internalWiring[1]))
+    this.components.push(new HalfAdder(this.internalWiring[0], z, s, this.internalWiring[2]))
+    this.components.push(new OrGate(this.internalWiring[1], this.internalWiring[2], c))
   }
 
 }
@@ -27,7 +27,7 @@ class PipoAdder {
 
   constructor(a, b, s, c) {
     let size = a.length
-    this.internalWiring = wireSet(size)
+    this.internalWiring = wires(size)
     this.components = []
     if (size > 1) {
       this.components.push(new FullAdder(a[0], b[0], this.internalWiring[0], s[0], this.internalWiring[1]))

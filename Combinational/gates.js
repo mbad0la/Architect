@@ -12,7 +12,9 @@ class AndGate {
   hardware() {
     let xSig = this.x.getSignal()
     let ySig = this.y.getSignal()
-    if (xSig === undefined || ySig === undefined) {
+    if (xSig === 0 || ySig === 0) {
+      this.z.propagateSignal(0)
+    } else if (xSig === undefined || ySig === undefined) {
       this.z.propagateSignal(undefined)
     } else this.z.propagateSignal(xSig && ySig)
   }
@@ -33,7 +35,9 @@ class OrGate {
   hardware() {
     let xSig = this.x.getSignal()
     let ySig = this.y.getSignal()
-    if (xSig === undefined || ySig === undefined) {
+    if (xSig === 1 || ySig === 1) {
+      this.z.propagateSignal(1)
+    } else if (xSig === undefined || ySig === undefined) {
       this.z.propagateSignal(undefined)
     } else this.z.propagateSignal(xSig || ySig)
   }
@@ -93,7 +97,9 @@ class NandGate {
   hardware() {
     let xSig = this.x.getSignal()
     let ySig = this.y.getSignal()
-    if (xSig === undefined || ySig === undefined) {
+    if (xSig === 0 || ySig === 0) {
+      this.z.propagateSignal(1)
+    } else if (xSig === undefined || ySig === undefined) {
       this.z.propagateSignal(undefined)
     } else this.z.propagateSignal(Number(!(xSig && ySig)))
   }
@@ -114,7 +120,9 @@ class NorGate {
   hardware() {
     let xSig = this.x.getSignal()
     let ySig = this.y.getSignal()
-    if (xSig === undefined || ySig === undefined) {
+    if (xSig === 1 || ySig === 1) {
+      this.z.propagateSignal(0)
+    } else if (xSig === undefined || ySig === undefined) {
       this.z.propagateSignal(undefined)
     } else this.z.propagateSignal(Number(!(xSig || ySig)))
   }
