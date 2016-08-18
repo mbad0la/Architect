@@ -66,4 +66,4 @@ function wires(n) {
   return wireSet
 }
 
-module.exports = { Wire, Pulse, wires }
+module.exports = { Pulse, wires }
