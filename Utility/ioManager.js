@@ -23,7 +23,7 @@ class StringIO {
     })
 
     outBuff = outBuff.reverse().join('')
-    console.log(outBuff)
+    return outBuff
   }
 
 }

@@ -1,6 +1,7 @@
 class AndGate {
 
   constructor(x, o) {
+    if (x.length != 2 || o.length != 1) throw new Error('Invalid Connection/s')
     this.x = x
     this.o = o
     this.hardware = this.hardware.bind(this)
@@ -23,6 +24,7 @@ class AndGate {
 class TriInpAndGate {
 
   constructor(x, o) {
+    if (x.length != 3 || o.length != 1) throw new Error('Invalid Connection/s')
     this.x = x
     this.o = o
     this.hardware = this.hardware.bind(this)
@@ -47,6 +49,7 @@ class TriInpAndGate {
 class OrGate {
 
   constructor(x, o) {
+    if (x.length != 2 || o.length != 1) throw new Error('Invalid Connection/s')
     this.x = x
     this.o  = o
     this.hardware = this.hardware.bind(this)
@@ -69,6 +72,7 @@ class OrGate {
 class XorGate {
 
   constructor(x, o) {
+    if (x.length != 2 || o.length != 1) throw new Error('Invalid Connection/s')
     this.x = x
     this.o  = o
     this.hardware = this.hardware.bind(this)
@@ -89,6 +93,7 @@ class XorGate {
 class NotGate {
 
   constructor(x, o) {
+    if (x.length != 1 || o.length != 1) throw new Error('Invalid Connection/s')
     this.x = x
     this.o = o
     this.hardware = this.hardware.bind(this)
@@ -107,6 +112,7 @@ class NotGate {
 class NandGate {
 
   constructor(x, o) {
+    if (x.length != 2 || o.length != 1) throw new Error('Invalid Connection/s')
     this.x = x
     this.o  = o
     this.hardware = this.hardware.bind(this)
@@ -129,6 +135,7 @@ class NandGate {
 class NorGate {
 
   constructor(x, o) {
+    if (x.length != 2 || o.length != 1) throw new Error('Invalid Connection/s')
     this.x = x
     this.o  = o
     this.hardware = this.hardware.bind(this)
@@ -151,6 +158,7 @@ class NorGate {
 class XnorGate {
 
   constructor(x, o) {
+    if (x.length != 2 || o.length != 1) throw new Error('Invalid Connection/s')
     this.x = x
     this.o  = o
     this.hardware = this.hardware.bind(this)

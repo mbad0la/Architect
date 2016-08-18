@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "ava"
   },
   "repository": {
     "type": "git",
@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/mbad0la/Architect/issues"
   },
-  "homepage": "https://github.com/mbad0la/Architect#readme"
+  "homepage": "https://github.com/mbad0la/Architect#readme",
+  "devDependencies": {
+    "ava": "^0.16.0"
+  }
 }

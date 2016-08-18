@@ -4,6 +4,7 @@ const { Wire, wires } = require('../Connectors/transport')
 class HalfAdder {
 
   constructor(x, s) {
+    if (x.length != 2 || s.length != 2) throw new Error('Invalid Connection/s')
     this.components = []
     this.components.push(new XorGate(x, [s[0]]))
     this.components.push(new AndGate(x, [s[1]]))
@@ -14,6 +15,7 @@ class HalfAdder {
 class FullAdder {
 
   constructor(x, s) {
+    if (x.length != 3 || s.length != 2) throw new Error('Invalid Connection/s')
     this.internalWiring = wires(3)
     this.components = []
     this.components.push(new HalfAdder([x[0], x[1]], [this.internalWiring[0], this.internalWiring[1]]))
@@ -26,6 +28,7 @@ class FullAdder {
 class PipoAdder {
 
   constructor(a, b, s) {
+    if (a.length != b.length || s.length != a.length + 1) throw new Error('Invalid Connection/s')
     let size = a.length
     this.internalWiring = wires(size)
     this.components = []

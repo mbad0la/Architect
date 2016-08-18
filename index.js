@@ -6,7 +6,7 @@ module.exports = function(path) {
   if (path == 'Connectors')
   return require('./Connectors/transport')
   if (path == 'Base')
-  return require('./Sequential/baseblocks')
+  return require('./Sequential/base')
   if (path == 'IO')
   return require('./Utility/ioManager')
 }
