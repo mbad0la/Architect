@@ -6,7 +6,7 @@ class StringIO {
     this.o = ioMapping[inputGroup]
   }
 
-  resultOf(...inputSeqs) {
+  input(...inputSeqs) {
     let inpIndex = inputSeqs[0].length - 1
     let totalInps = this.i.length
     let pos = 0

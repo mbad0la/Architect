@@ -7,8 +7,8 @@ class HalfAdder extends Hardware {
   constructor(x, s) {
     if (x.length != 2 || s.length != 2) throw new Error('Invalid Connection/s')
     super([x, s])
-    this.components.push(new XorGate(x, [s[0]]))
-    this.components.push(new AndGate(x, [s[1]]))
+    this.components.push(new XorGate([x[0]], [x[1]], [s[0]]))
+    this.components.push(new AndGate([x[0]], [x[1]], [s[1]]))
   }
 
 }
@@ -21,7 +21,7 @@ class FullAdder extends Hardware {
     this.internalWiring = wires(3)
     this.components.push(new HalfAdder([x[0], x[1]], [this.internalWiring[0], this.internalWiring[1]]))
     this.components.push(new HalfAdder([this.internalWiring[0], x[2]], [s[0], this.internalWiring[2]]))
-    this.components.push(new OrGate([this.internalWiring[1], this.internalWiring[2]], [s[1]]))
+    this.components.push(new OrGate([this.internalWiring[1]], [this.internalWiring[2]], [s[1]]))
   }
 
 }
@@ -30,7 +30,7 @@ class PipoAdder extends Hardware {
 
   constructor(a, b, s) {
     if (a.length != b.length || s.length != a.length + 1) throw new Error('Invalid Connection/s')
-    super([a, b, s]) 
+    super([a, b, s])
     let size = a.length
     this.internalWiring = wires(size)
     if (size > 1) {
