@@ -1,23 +1,24 @@
 const { AndGate, XorGate, OrGate } = require('./gates')
-const { Wire, wires } = require('../Connectors/transport')
+const { wires } = require('../Connectors/transport')
+const { Hardware } = require('../Utility/new')
 
-class HalfAdder {
+class HalfAdder extends Hardware {
 
   constructor(x, s) {
     if (x.length != 2 || s.length != 2) throw new Error('Invalid Connection/s')
-    this.components = []
+    super([x, s])
     this.components.push(new XorGate(x, [s[0]]))
     this.components.push(new AndGate(x, [s[1]]))
   }
 
 }
 
-class FullAdder {
+class FullAdder extends Hardware {
 
   constructor(x, s) {
     if (x.length != 3 || s.length != 2) throw new Error('Invalid Connection/s')
+    super([x, s])
     this.internalWiring = wires(3)
-    this.components = []
     this.components.push(new HalfAdder([x[0], x[1]], [this.internalWiring[0], this.internalWiring[1]]))
     this.components.push(new HalfAdder([this.internalWiring[0], x[2]], [s[0], this.internalWiring[2]]))
     this.components.push(new OrGate([this.internalWiring[1], this.internalWiring[2]], [s[1]]))
@@ -25,13 +26,13 @@ class FullAdder {
 
 }
 
-class PipoAdder {
+class PipoAdder extends Hardware {
 
   constructor(a, b, s) {
     if (a.length != b.length || s.length != a.length + 1) throw new Error('Invalid Connection/s')
+    super([a, b, s]) 
     let size = a.length
     this.internalWiring = wires(size)
-    this.components = []
     if (size > 1) {
       this.components.push(new FullAdder([a[0], b[0], this.internalWiring[0]], [s[0], this.internalWiring[1]]))
       for(let i = 1; i < size - 1; i++) {

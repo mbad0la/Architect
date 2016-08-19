@@ -1,7 +1,10 @@
-class AndGate {
+const { Hardware } = require('../Utility/new')
+
+class AndGate extends Hardware {
 
   constructor(x, o) {
     if (x.length != 2 || o.length != 1) throw new Error('Invalid Connection/s')
+    super([x, o])
     this.x = x
     this.o = o
     this.hardware = this.hardware.bind(this)
@@ -21,10 +24,11 @@ class AndGate {
 
 }
 
-class TriInpAndGate {
+class TriInpAndGate extends Hardware {
 
   constructor(x, o) {
     if (x.length != 3 || o.length != 1) throw new Error('Invalid Connection/s')
+    super([x, o])
     this.x = x
     this.o = o
     this.hardware = this.hardware.bind(this)
@@ -46,10 +50,11 @@ class TriInpAndGate {
 
 }
 
-class OrGate {
+class OrGate extends Hardware {
 
   constructor(x, o) {
     if (x.length != 2 || o.length != 1) throw new Error('Invalid Connection/s')
+    super([x, o])
     this.x = x
     this.o  = o
     this.hardware = this.hardware.bind(this)
@@ -69,10 +74,11 @@ class OrGate {
 
 }
 
-class XorGate {
+class XorGate extends Hardware {
 
   constructor(x, o) {
     if (x.length != 2 || o.length != 1) throw new Error('Invalid Connection/s')
+    super([x, o])
     this.x = x
     this.o  = o
     this.hardware = this.hardware.bind(this)
@@ -90,10 +96,11 @@ class XorGate {
 
 }
 
-class NotGate {
+class NotGate extends Hardware {
 
   constructor(x, o) {
     if (x.length != 1 || o.length != 1) throw new Error('Invalid Connection/s')
+    super([x, o])
     this.x = x
     this.o = o
     this.hardware = this.hardware.bind(this)
@@ -109,10 +116,11 @@ class NotGate {
 
 }
 
-class NandGate {
+class NandGate extends Hardware {
 
   constructor(x, o) {
     if (x.length != 2 || o.length != 1) throw new Error('Invalid Connection/s')
+    super([x, o])
     this.x = x
     this.o  = o
     this.hardware = this.hardware.bind(this)
@@ -132,10 +140,11 @@ class NandGate {
 
 }
 
-class NorGate {
+class NorGate extends Hardware {
 
   constructor(x, o) {
     if (x.length != 2 || o.length != 1) throw new Error('Invalid Connection/s')
+    super([x, o])
     this.x = x
     this.o  = o
     this.hardware = this.hardware.bind(this)
@@ -155,10 +164,11 @@ class NorGate {
 
 }
 
-class XnorGate {
+class XnorGate extends Hardware {
 
   constructor(x, o) {
     if (x.length != 2 || o.length != 1) throw new Error('Invalid Connection/s')
+    super([x, o])
     this.x = x
     this.o  = o
     this.hardware = this.hardware.bind(this)

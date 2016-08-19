@@ -5,8 +5,10 @@ module.exports = function(path) {
   return require('./Combinational/arithmetics')
   if (path == 'Connectors')
   return require('./Connectors/transport')
-  if (path == 'Base')
-  return require('./Sequential/base')
+  if (path == 'Sequential')
+  return require('./Sequential/ff')
   if (path == 'IO')
   return require('./Utility/ioManager')
+  if (path == 'Base')
+  return require('./Utility/new')
 }

@@ -1,9 +1,9 @@
 class StringIO {
 
-  constructor(...ioMappings) {
-    let inputGroup = ioMappings.length - 1
-    this.i = ioMappings.slice(0, inputGroup)
-    this.o = ioMappings[inputGroup]
+  constructor({ioMapping}) {
+    let inputGroup = ioMapping.length - 1
+    this.i = ioMapping.slice(0, inputGroup)
+    this.o = ioMapping[inputGroup]
   }
 
   resultOf(...inputSeqs) {
