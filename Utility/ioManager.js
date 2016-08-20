@@ -22,7 +22,8 @@ class StringIO {
       return wire.getSignal()
     })
 
-    outBuff = outBuff.reverse().join('')
+    outBuff = outBuff.join('')
+
     return outBuff
   }
 

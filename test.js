@@ -4,7 +4,7 @@ import { NotGate, AndGate, TriInpAndGate, XorGate } from './Combinational/gates'
 import { PipoAdder, HalfAdder, FullAdder } from './Combinational/arithmetics'
 import { SRFlipFlop } from './Sequential/ff'
 import { StringIO } from './Utility/ioManager'
-import { LineDecoder } from './Combinational/decoders'
+import { Decoder1x2, Decoder2x4 } from './Combinational/decoders'
 
 
 test('Not-Gate : 1', t => {
@@ -197,18 +197,45 @@ test('SR-Flip-Flip : No Change', t => {
   clock.switchOff()
 })
 
-test('Line Decoder : 1', t => {
+test('1x2 Decoder : 1', t => {
   let a = wires(1)
   let b = wires(1)
-  let ld = new LineDecoder(a, b)
+  let ld = new Decoder1x2(a, b)
   let c = new StringIO(ld)
   t.is(c.input('0'), '10')
 })
 
-test('Line Decoder : 1', t => {
+test('1x2 Decoder : 2', t => {
   let a = wires(1)
   let b = wires(1)
-  let ld = new LineDecoder(a, b)
+  let ld = new Decoder1x2(a, b)
   let c = new StringIO(ld)
   t.is(c.input('1'), '01')
+})
+
+test('2x4 Decoder : 1', t => {
+  let x = wires(1)
+  let y = wires(1)
+  let b = wires(4)
+  let d2x4 = new Decoder2x4(x, y, b)
+  let c = new StringIO(d2x4)
+  t.is(c.input('0', '0'), '1000')
+})
+
+test('2x4 Decoder : 2', t => {
+  let x = wires(1)
+  let y = wires(1)
+  let b = wires(4)
+  let d2x4 = new Decoder2x4(x, y, b)
+  let c = new StringIO(d2x4)
+  t.is(c.input('1' ,'0'), '0010')
+})
+
+test('2x4 Decoder : 3', t => {
+  let x = wires(1)
+  let y = wires(1)
+  let b = wires(4)
+  let d2x4 = new Decoder2x4(x, y, b)
+  let c = new StringIO(d2x4)
+  t.is(c.input('1', '1'), '0001')
 })
