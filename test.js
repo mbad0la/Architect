@@ -4,6 +4,7 @@ import { NotGate, AndGate, TriInpAndGate, XorGate } from './Combinational/gates'
 import { PipoAdder, HalfAdder, FullAdder } from './Combinational/arithmetics'
 import { SRFlipFlop } from './Sequential/ff'
 import { StringIO } from './Utility/ioManager'
+import { LineDecoder } from './Combinational/decoders'
 
 
 test('Not-Gate : 1', t => {
@@ -194,4 +195,20 @@ test('SR-Flip-Flip : No Change', t => {
   let prevQ = c.input('0', '1')
   t.is(c.input('0', '0'), prevQ)
   clock.switchOff()
+})
+
+test('Line Decoder : 1', t => {
+  let a = wires(1)
+  let b = wires(1)
+  let ld = new LineDecoder(a, b)
+  let c = new StringIO(ld)
+  t.is(c.input('0'), '10')
+})
+
+test('Line Decoder : 1', t => {
+  let a = wires(1)
+  let b = wires(1)
+  let ld = new LineDecoder(a, b)
+  let c = new StringIO(ld)
+  t.is(c.input('1'), '01')
 })
