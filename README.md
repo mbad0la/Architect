@@ -1,3 +1,5 @@
+![Architect](media/banner.png)
+
 > Highly Extensible Hardware Description Library for JavaScript Developers
 
 Hardware is event-driven. And it is functional in nature, having abstractions on abstractions.
@@ -30,8 +32,44 @@ let myAndGate = new AndGate(a, b, output)
 // wrap hardware in a I/O BlackBox
 let ioHandler = new StringIO(myAndGate)
 
-// prints 1
-console.log(ioHandler.input('1', '1'))
-// prints 0
-console.log(ioHandler.input('0', '0'))
+console.log(ioHandler.input('1', '1')) // prints 1
+
+console.log(ioHandler.input('0', '0')) // prints 0
 ```
+
+Or maybe we need a four input AND-Gate. Let's build it from existing abstractions
+
+```js
+class FourInpAndGate() {
+
+  constructor(a, b, c, d, o) {
+    super(a,b,c,d,o)
+    this.internalWiring = wires(2) // declare wires to be used internally
+    this.components.push(new AndGate(a, b, this.internalWiring[0]))
+    this.components.push(new AndGate(c, d, this.internalWiring[1]))
+    this.components.push(new AndGate(this.internalWiring[0], this.internalWiring[1], o))
+  }
+
+}
+
+let a = wires(1)
+let b = wires(1)
+let c = wires(1)
+let d = wires(1)
+let o = wires(1)
+
+let fourInpAnd = new FourInpAndGate(a, b, c, d, o)
+let ioHandler = new StringIO(fourInpAnd)
+
+console.log(ioHandler('0', '1', '1', '1')) // prints 0
+
+console.log(ioHandler('1', '1', '1', '1')) // prints 1
+```
+
+### Development
+
+There are just so many possibilities to do here! Would love to get contributions from the community :smile:
+
+### Info
+
+I'll be taking a while to document this properly. Please bear with me or play around with my code to figure it out yourself :smirk:
