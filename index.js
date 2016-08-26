@@ -1,14 +1,10 @@
 module.exports = function(path) {
-  if (path == 'Gates')
-  return require('./Combinational/gates')
-  if (path == 'Arithmetics')
-  return require('./Combinational/arithmetics')
-  if (path == 'Connectors')
-  return require('./Connectors/transport')
-  if (path == 'Sequential')
-  return require('./Sequential/ff')
-  if (path == 'IO')
-  return require('./Utility/ioManager')
-  if (path == 'Base')
-  return require('./Utility/new')
+  return {
+    'Gates': require('./Combinational/gates'),
+    'Arithmetics': require('./Combinational/arithmetics'),
+    'Connectors': require('./Connectors/transport'),
+    'Sequential': require('./Sequential/ff'),
+    'IO': require('./Utility/ioManager'),
+    'Base': require('./Utility/new')
+  } [ path ];
 }
