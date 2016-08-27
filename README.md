@@ -40,10 +40,10 @@ console.log(ioHandler.input('0', '0')) // prints 0
 Or maybe we need a four input AND-Gate. Let's build it from existing abstractions
 
 ```js
-class FourInpAndGate() {
+class FourInpAndGate extends Hardware {
 
   constructor(a, b, c, d, o) {
-    super(a,b,c,d,o)
+    super([a, b, c, d, o])
     this.internalWiring = wires(2) // declare wires to be used internally
     this.components.push(new AndGate(a, b, this.internalWiring[0]))
     this.components.push(new AndGate(c, d, this.internalWiring[1]))
