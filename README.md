@@ -16,6 +16,28 @@ For people not acquainted with both VHDL and JS, I'm pretty sure the learning cu
 
 Let's get to business!
 
+### Existing Hardware Abstractions
+
+* Gates
+  * AndGate
+  * TriInpAndGate
+  * OrGate
+  * XorGate
+  * NotGate
+  * NandGate
+  * NorGate
+  * XnorGate
+* Decoders
+  * Decoder1x2
+  * Decoder2x4
+* Arithmetics
+  * HalfAdder
+  * FullAdder
+  * PipoAdder
+* Flip-Flops
+  * SRFlipFlop
+  * DFlipFlop
+
 ### :electric_plug: Plug-n-Play
 
 Use existing abstractions seemlessly.
@@ -30,6 +52,7 @@ let output = wires(1)
 // initialise the hardware
 let myAndGate = new AndGate(a, b, output)
 // wrap hardware in a I/O BlackBox
+// this is compulsory, to be able to do I/O using strings
 let ioHandler = new StringIO(myAndGate)
 
 console.log(ioHandler.input('1', '1')) // prints 1
@@ -37,7 +60,35 @@ console.log(ioHandler.input('1', '1')) // prints 1
 console.log(ioHandler.input('0', '0')) // prints 0
 ```
 
-Or maybe we need a four input AND-Gate. Let's build it from existing abstractions
+Say what? `AND` is way too easy to be called an abstraction?
+
+No worries, let's plug in this generalised Parallel-in-Parallel-out Adder!
+
+```js
+let a = wires(4)
+let b = wires(4)
+let s = wires(5)
+let hWare = new PipoAdder(a, b, s)
+let ioHandler = new StringIO(hWare)
+console.log(ioHandler.input('1111', '1111')) // prints 11110
+```
+
+Or maybe we want to build something from existing abstractions?
+
+#### Abstraction Rules and Specs
+
+* Every Class/hardware extends on `Hardware`.
+* Every initialisation argument to the class instance has to be an array of `Wire` instances (obtained from the `wires` method).
+* An array consisting of I/O `wires` is passed onto the parent class `Hardware`, with only the last element being the output parameter. It is necessary to provide every input parameter and the output parameter to be able to wrap this in a `StringIO` instance to do I/O operations with `string` arguments.
+* Every class instance has two instance variables available from the parent `Hardware` instance :
+  * internalWiring - Array of `Wire` instances (initially empty).
+  * components - Array of abstractions used to build your hardware (initially empty).
+* Your entire logic goes into your Class' constructor.
+* `internalWiring` variable is used to initialise `Wire` instances that are not a part of the I/O for the hardware but are required to inter-connect the sub-components in your abstraction.
+* `components` variable is used to store instances of subcomponents used in your hardware. This helps a designer to quickly refer to all the build blocks that went into making a particular piece of hardware.
+
+
+Let's build a 4-input AND Gate using the above rules and specifications.
 
 ```js
 class FourInpAndGate extends Hardware {
@@ -66,10 +117,48 @@ console.log(ioHandler('0', '1', '1', '1')) // prints 0
 console.log(ioHandler('1', '1', '1', '1')) // prints 1
 ```
 
+### Creating a Declarative Hardware Component
+
+#### Some Basic Rules
+
+* Every Class/hardware extends on `Hardware`.
+* All the logic goes inside the `hardware` method of your component's Class.
+* Event to be listened for must be `signal`.
+
+#### Let's get started
+
+Every `Wire` instance extends on `EventEmitter`, thus this library essentially works by registering listeners in a Class instance and binding them to the `hardware` method of the Class.
+
+With the help of `getSignal` and `propagateSignal` methods of `Wire`, read changes from input `Wire` instances, use your logic on them, and emit result through the output `Wire` instance.
+
+Let's set this up with an example taken from this library
+
+```js
+class AndGate extends Hardware {
+
+  constructor(x, y, o) {
+    if (x.length != 1 || y.length != 1 || o.length != 1) throw new Error('Invalid Connection/s')
+    super([x, y, o])
+    this.x = x
+    this.y = y
+    this.o = o
+    this.hardware = this.hardware.bind(this)
+    x[0].on('signal', this.hardware)
+    y[0].on('signal', this.hardware)
+  }
+
+  hardware() {
+    let xSig = this.x[0].getSignal()
+    let ySig = this.y[0].getSignal()
+    if (xSig === 0 || ySig === 0) {
+      this.o[0].propagateSignal(0)
+    } else if (xSig === undefined || ySig === undefined) {
+      this.o[0].propagateSignal(undefined)
+    } else this.o[0].propagateSignal(xSig && ySig)
+  }
+
+}
+```
 ### Development
 
 There are just so many possibilities to do here! Would love to get contributions from the community :smile:
-
-### Info
-
-I'll be taking a while to document this properly. Please bear with me or play around with my code to figure it out yourself :smirk:
