@@ -16,6 +16,10 @@ For people not acquainted with both VHDL and JS, I'm pretty sure the learning cu
 
 Let's get to business!
 
+### Installation
+
+`npm install architectjs`
+
 ### Existing Hardware Abstractions
 
 * Gates
@@ -45,6 +49,10 @@ Use existing abstractions seemlessly.
 Let's plug in an AND-Gate
 
 ```js
+const { wires } = require('architectjs')('Connectors')
+const { AndGate } = require('architectjs')('Gates')
+const { StringIO } = require('architectjs')('IO')
+
 // provision wires to connect to your hardware
 let a = wires(1)
 let b = wires(1)
@@ -65,6 +73,10 @@ Say what? `AND` is way too easy to be called an abstraction?
 No worries, let's plug in this generalised Parallel-in-Parallel-out Adder!
 
 ```js
+const { wires } = require('architectjs')('Connectors')
+const { PipoAdder } = require('architectjs')('Arithmetics')
+const { StringIO } = require('architectjs')('IO')
+
 let a = wires(4)
 let b = wires(4)
 let s = wires(5)
@@ -91,6 +103,11 @@ Or maybe we want to build something from existing abstractions?
 Let's build a 4-input AND Gate using the above rules and specifications.
 
 ```js
+const { wires } = require('architectjs')('Connectors')
+const { AndGate } = require('architectjs')('Gates')
+const { StringIO } = require('architectjs')('IO')
+const { Hardware } = require('architectjs')('Base')
+
 class FourInpAndGate extends Hardware {
 
   constructor(a, b, c, d, o) {
@@ -134,6 +151,8 @@ With the help of `getSignal` and `propagateSignal` methods of `Wire`, read chang
 Let's set this up with an example taken from this library
 
 ```js
+const { Hardware } = require('architectjs')('Base')
+
 class AndGate extends Hardware {
 
   constructor(x, y, o) {

@@ -1,8 +1,8 @@
 {
-  "name": "architect",
-  "version": "0.0.1",
+  "name": "architectjs",
+  "version": "0.1.0",
   "description": "Hardware Description and Emulation Library",
-  "keywords": ["hardware", "design", "emulation", "hardware emulation", "vhdl"],
+  "keywords": ["hardware", "design", "emulation", "hardware emulation", "vhdl", "architect", "architectjs", "library"],
   "main": "index.js",
   "scripts": {
     "test": "ava"
