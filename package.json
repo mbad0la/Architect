@@ -1,7 +1,8 @@
 {
   "name": "architect",
   "version": "0.0.1",
-  "description": "",
+  "description": "Hardware Description and Emulation Library",
+  "keywords": ["hardware", "design", "emulation", "hardware emulation", "vhdl"],
   "main": "index.js",
   "scripts": {
     "test": "ava"
