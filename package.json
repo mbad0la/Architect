@@ -1,22 +1,18 @@
 {
   "name": "architectjs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Hardware Description and Emulation Library",
   "keywords": ["hardware", "design", "emulation", "hardware emulation", "vhdl", "architect", "architectjs", "library"],
-  "main": "index.js",
   "scripts": {
     "test": "ava"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/mbad0la/Architect.git"
+  "repository": "mbad0la/Architect",
+  "author": {
+    "name": "Mayank Badola",
+    "email": "badola21295@gmail.com",
+    "url": "http://mbad0la.github.io"
   },
-  "author": "Mayank Badola",
-  "license": "GPL-3.0",
-  "bugs": {
-    "url": "https://github.com/mbad0la/Architect/issues"
-  },
-  "homepage": "https://github.com/mbad0la/Architect#readme",
+  "license": "MIT",
   "devDependencies": {
     "ava": "^0.16.0"
   }

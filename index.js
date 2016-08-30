@@ -6,5 +6,5 @@ module.exports = function(path) {
     'Sequential': require('./Sequential/ff'),
     'IO': require('./Utility/ioManager'),
     'Base': require('./Utility/new')
-  } [ path ];
+  } [ path ]
 }

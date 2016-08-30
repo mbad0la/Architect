@@ -54,14 +54,14 @@ const { AndGate } = require('architectjs')('Gates')
 const { StringIO } = require('architectjs')('IO')
 
 // provision wires to connect to your hardware
-let a = wires(1)
-let b = wires(1)
-let output = wires(1)
+const inputA = wires(1)
+const inputB = wires(1)
+const output = wires(1)
 // initialise the hardware
-let myAndGate = new AndGate(a, b, output)
+const hWare = new AndGate(inputA, inputB, output)
 // wrap hardware in a I/O BlackBox
 // this is compulsory, to be able to do I/O using strings
-let ioHandler = new StringIO(myAndGate)
+const ioHandler = new StringIO(hWare)
 
 console.log(ioHandler.input('1', '1')) // prints 1
 
@@ -77,11 +77,12 @@ const { wires } = require('architectjs')('Connectors')
 const { PipoAdder } = require('architectjs')('Arithmetics')
 const { StringIO } = require('architectjs')('IO')
 
-let a = wires(4)
-let b = wires(4)
-let s = wires(5)
-let hWare = new PipoAdder(a, b, s)
-let ioHandler = new StringIO(hWare)
+// code for 4-bit adder
+const inputA = wires(4)
+const inputB = wires(4)
+const sum = wires(5)
+const hWare = new PipoAdder(inputA, inputB, sum)
+const ioHandler = new StringIO(hWare)
 console.log(ioHandler.input('1111', '1111')) // prints 11110
 ```
 
@@ -120,14 +121,14 @@ class FourInpAndGate extends Hardware {
 
 }
 
-let a = wires(1)
-let b = wires(1)
-let c = wires(1)
-let d = wires(1)
-let o = wires(1)
+const a = wires(1)
+const b = wires(1)
+const c = wires(1)
+const d = wires(1)
+const o = wires(1)
 
-let fourInpAnd = new FourInpAndGate(a, b, c, d, o)
-let ioHandler = new StringIO(fourInpAnd)
+const fourInpAnd = new FourInpAndGate(a, b, c, d, o)
+const ioHandler = new StringIO(fourInpAnd)
 
 console.log(ioHandler('0', '1', '1', '1')) // prints 0
 
