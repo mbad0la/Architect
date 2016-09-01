@@ -41,6 +41,7 @@ Let's get to business!
 * Flip-Flops
   * SRFlipFlop
   * DFlipFlop
+  * TFlipFlop
 
 ### :electric_plug: Plug-n-Play
 
