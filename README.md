@@ -183,4 +183,6 @@ class AndGate extends Hardware {
 
 New Hardware Component Proposals should be put up as an issue to discuss it's vialibility and modelling. I won't be considering anything else other than component proposals at the moment.
 
+I am also facing some problems in figuring out how to implement clock-edge driven circuits and circuits that have a feedback to them. Most of time, infinte events are triggered due to the feedbacking in the circuits.
+
 There are just so many possibilities to do here! Would love to get contributions from the community :smile:
