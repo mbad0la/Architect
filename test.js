@@ -2,7 +2,7 @@ import test from 'ava'
 import { wires, Pulse } from './Connectors/transport'
 import { NotGate, AndGate, TriInpAndGate, XorGate } from './Combinational/gates'
 import { PipoAdder, HalfAdder, FullAdder } from './Combinational/arithmetics'
-import { SRFlipFlop } from './Sequential/ff'
+import { SRFlipFlop, TFlipFlop } from './Sequential/ff'
 import { StringIO } from './Utility/ioManager'
 import { Decoder1x2, Decoder2x4 } from './Combinational/decoders'
 
@@ -194,6 +194,17 @@ test('SR-Flip-Flop : No Change', t => {
   const ioHandler = new StringIO(ff)
   const prevQ = ioHandler.input('0', '1')
   t.is(ioHandler.input('0', '0'), prevQ)
+  clock.switchOff()
+})
+
+test('T-Flip-Flip: 1', t => {
+  const T = wires(1)
+  const qqbar = wires(2)
+  const clock = new Pulse(500, 1)
+  clock.switchOn()
+  const ff = new TFlipFlop(T, qqbar, clock)
+  const ioHandler = new StringIO(ff)
+  t.is(ioHandler.input('1'), '1')
   clock.switchOff()
 })
 

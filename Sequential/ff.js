@@ -31,4 +31,20 @@ class DFlipFlop extends Hardware {
 
 }
 
-module.exports = { SRFlipFlop, DFlipFlop }
+class TFlipFlop extends Hardware {
+
+  constructor(t, qqbar, c) {
+    if (t.length != 1 || qqbar.length != 2) throw new Error('Invalid Connection/s')
+    super([t, [qqbar[0]]])
+    this.internalWiring = wires(4)
+    this.components.push(new AndGate([c], [qqbar[0]], [this.internalWiring[0]]))
+    this.components.push(new AndGate([c], [qqbar[1]], [this.internalWiring[1]]))
+    this.components.push(new AndGate(t, [this.internalWiring[0]], [this.internalWiring[2]]))
+    this.components.push(new AndGate(t, [this.internalWiring[1]], [this.internalWiring[3]]))
+    this.components.push(new NorGate([this.internalWiring[2]], [qqbar[1]], [qqbar[0]]))
+    this.components.push(new NorGate([this.internalWiring[3]], [qqbar[0]], [qqbar[1]]))
+  }
+
+}
+
+module.exports = { SRFlipFlop, DFlipFlop, TFlipFlop }
