@@ -160,7 +160,7 @@ test('HalfAdder - 1 bit PIPO Equivalence : 3', t => {
   t.is(ioHandler1.input('0', '0'), ioHandler2.input('00'))
 })
 
-test('SR-Flip-Flip : Set', t => {
+test('SR-Flip-Flop : Set', t => {
   const s = wires(1)
   const r = wires(1)
   const qqbar = wires(2)
@@ -172,7 +172,7 @@ test('SR-Flip-Flip : Set', t => {
   clock.switchOff()
 })
 
-test('SR-Flip-Flip : Reset', t => {
+test('SR-Flip-Flop : Reset', t => {
   const s = wires(1)
   const r = wires(1)
   const qqbar = wires(2)
@@ -184,7 +184,7 @@ test('SR-Flip-Flip : Reset', t => {
   clock.switchOff()
 })
 
-test('SR-Flip-Flip : No Change', t => {
+test('SR-Flip-Flop : No Change', t => {
   const s = wires(1)
   const r = wires(1)
   const qqbar = wires(2)
