@@ -25,8 +25,8 @@ class DFlipFlop extends Hardware {
     this.components.push(new NotGate(d, [this.internalWiring[0]]))
     this.components.push(new NandGate([c], d, [this.internalWiring[1]]))
     this.components.push(new NandGate([c], [this.internalWiring[0]], [this.internalWiring[2]]))
-    this.components.push(new NorGate([this.internalWiring[1]], [qqbar[1]], [qqbar[0]]))
-    this.components.push(new NorGate([this.internalWiring[2]], [qqbar[0]], [qqbar[1]]))
+    this.components.push(new NandGate([this.internalWiring[1]], [qqbar[1]], [qqbar[0]]))
+    this.components.push(new NandGate([this.internalWiring[2]], [qqbar[0]], [qqbar[1]]))
   }
 
 }
