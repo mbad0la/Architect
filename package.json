@@ -1,8 +1,17 @@
 {
   "name": "architectjs",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Hardware Description and Emulation Library",
-  "keywords": ["hardware", "design", "emulation", "hardware emulation", "vhdl", "architect", "architectjs", "library"],
+  "keywords": [
+    "hardware",
+    "design",
+    "emulation",
+    "hardware emulation",
+    "vhdl",
+    "architect",
+    "architectjs",
+    "library"
+  ],
   "scripts": {
     "test": "ava"
   },
@@ -14,6 +23,6 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "ava": "^0.16.0"
+    "ava": "^0.25.0"
   }
 }
