@@ -126,6 +126,26 @@ class NotGate extends Hardware {
 
 }
 
+// o = x. Lets one net be presented on a separately provisioned wire, e.g.
+// to route an internal signal to an output port.
+class Buffer extends Hardware {
+
+  constructor(x, o) {
+    if (x.length != 1 || o.length != 1) throw new Error('Invalid Connection/s')
+    super([x, o])
+    this.x = x
+    this.o = o
+    this.hardware = this.hardware.bind(this)
+    x[0].on('signal', this.hardware)
+    this.hardware() // evaluate now: inputs may already carry a signal
+  }
+
+  hardware() {
+    this.o[0].propagateSignal(this.x[0].getSignal())
+  }
+
+}
+
 class NandGate extends Hardware {
 
   constructor(x, y, o) {
@@ -233,6 +253,6 @@ class BitwiseNot extends Hardware {
 }
 
 module.exports = {
-  AndGate, TriInpAndGate, OrGate, XorGate, NotGate, NandGate, NorGate, XnorGate,
+  AndGate, TriInpAndGate, OrGate, XorGate, NotGate, Buffer, NandGate, NorGate, XnorGate,
   BitwiseAnd, BitwiseOr, BitwiseXor, BitwiseNot
 }
