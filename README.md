@@ -38,7 +38,10 @@ Let's get to business!
   * HalfAdder
   * FullAdder
   * PipoAdder
-* Flip-Flops
+* Latches (level-sensitive)
+  * SRLatch
+  * DLatch
+* Flip-Flops (rising-edge triggered, master-slave)
   * SRFlipFlop
   * DFlipFlop
 
@@ -93,6 +96,7 @@ Or maybe we want to build something from existing abstractions?
 * Every Class/hardware extends on `Hardware`.
 * Every initialisation argument to the class instance has to be an array of `Wire` instances (obtained from the `wires` method).
 * An array consisting of I/O `wires` is passed onto the parent class `Hardware`, with only the last element being the output parameter. It is necessary to provide every input parameter and the output parameter to be able to wrap this in a `StringIO` instance to do I/O operations with `string` arguments.
+* Sequential hardware passes its clock `Wire` as an optional second argument to `Hardware` (`super([d, q], clock)`). It is available as `this.clock` and is kept out of `ioMapping`, so `StringIO` drives only the data ports and the clock is driven with `clock.tick()`.
 * Every class instance has two instance variables available from the parent `Hardware` instance :
   * internalWiring - Array of `Wire` instances (initially empty).
   * components - Array of abstractions used to build your hardware (initially empty).
@@ -187,14 +191,32 @@ New Hardware Component Proposals should be put up as an issue to discuss it's vi
 
 Signals are not propagated immediately. `propagateSignal` schedules a write on a shared `Simulator`, which applies writes in **delta cycles**: each cycle applies every pending write, then evaluates every component whose inputs changed. This makes results independent of the order in which components were constructed, and lets feedback circuits (latches, flip-flops) settle deterministically. A circuit that never settles (e.g. a NOT gate wired to its own output) throws `Circuit did not settle after N delta cycles` instead of overflowing the stack.
 
-`StringIO.input()` settles the circuit before reading outputs. To drive clocked circuits use `Clock` from `Connectors` — `clock.tick()` flips the clock and settles the circuit synchronously:
+`StringIO.input()` settles the circuit before reading outputs. To drive clocked circuits use `Clock` from `Connectors` — `clock.tick()` flips the clock and settles the circuit synchronously.
+
+#### Latches vs. Flip-Flops
+
+`SRLatch` and `DLatch` are **level-sensitive**: while the clock is high they are transparent (the output follows the input), and while it is low they hold. `SRFlipFlop` and `DFlipFlop` are **rising-edge triggered**: they are built master-slave style from two latches on opposite clock phases, so the input is sampled only at the 0 → 1 transition of the clock and ignored otherwise. Use flip-flops for anything that chains state (registers, shift registers, counters) — a latch would let data race through every stage in a single clock phase.
 
 ```js
-const { wires, Clock } = require('architectjs')('Connectors')
+const { wires, Clock, simulator } = require('architectjs')('Connectors')
+const { DFlipFlop } = require('architectjs')('Sequential')
+
+const d = wires(1)
+const qqbar = wires(2) // [Q, Q']
 const clock = new Clock(0)
-const ff = new SRFlipFlop(s, r, qqbar, clock)
-clock.tick() // rising edge
+const ff = new DFlipFlop(d, qqbar, clock)
+
+d[0].propagateSignal(1)
+simulator.run()
+qqbar[0].getSignal() // undefined - no edge yet
+clock.tick()         // rising edge
+qqbar[0].getSignal() // 1
+d[0].propagateSignal(0)
+simulator.run()
+qqbar[0].getSignal() // still 1 - only changes on the next rising edge
 ```
+
+The clock is passed as a single `Wire` (not an array). It is stored on the component as `ff.clock` rather than in `ioMapping`, so `ioHandler.input(...)` drives only the data inputs and you tick the clock separately.
 
 Call `simulator.run()` yourself if you write to wires directly outside `StringIO` or `Clock`.
 
