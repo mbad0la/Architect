@@ -49,6 +49,9 @@ class Wire extends EventEmitter {
 
   constructor(sig, name) {
     super()
+    // a net fans out to every gate it feeds; Node's default cap of 10
+    // listeners is a leak heuristic that does not apply here
+    this.setMaxListeners(0)
 
     this.signal = sig
     this.name = name

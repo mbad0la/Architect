@@ -31,19 +31,35 @@ Let's get to business!
   * NandGate
   * NorGate
   * XnorGate
-* Decoders
+* Decoders / Encoders
   * Decoder1x2
   * Decoder2x4
+  * Encoder4x2
+* Multiplexers (N-bit buses)
+  * Mux2x1
+  * Mux4x1
+  * Demux1x2
 * Arithmetics
   * HalfAdder
   * FullAdder
-  * PipoAdder
+  * PipoAdder (optional carry in)
+  * PipoSubtractor (two's complement)
+* Comparators
+  * Comparator (N-bit unsigned: lt / eq / gt)
 * Latches (level-sensitive)
   * SRLatch
   * DLatch
 * Flip-Flops (rising-edge triggered, master-slave)
   * SRFlipFlop
   * DFlipFlop
+* Registers and Counters
+  * Register
+  * ShiftRegister
+  * Counter (synchronous, with synchronous reset)
+
+#### Bus convention
+
+On every bus, `wire[0]` is the least significant bit — on inputs, outputs and internal wiring alike, like `std_logic_vector(n downto 0)` in VHDL. This is what lets you plug one component's output bus straight into another's input bus without reversing anything. `StringIO` writes and reads strings MSB first like a binary literal, so `'0110'` on a 4-wire bus drives `wire[1]` and `wire[2]`, and a sum bus prints with its carry out on the left.
 
 ### :electric_plug: Plug-n-Play
 
@@ -89,6 +105,35 @@ const ioHandler = new StringIO(hWare)
 console.log(ioHandler.input('1111', '1111')) // prints 11110
 ```
 
+And a clocked circuit, composed from buses: a counter feeding an adder feeding a register.
+
+```js
+const { wires, Clock, simulator } = require('architectjs')('Connectors')
+const { PipoAdder } = require('architectjs')('Arithmetics')
+const { Counter, Register } = require('architectjs')('Sequential')
+
+const clock = new Clock(0)
+const reset = wires(1)
+const count = wires(3)
+const five = wires(3)
+const sum = wires(4)
+const latched = wires(4)
+
+new Counter(reset, count, clock)
+new PipoAdder(count, five, sum)      // count + 5, no bit reversing needed
+new Register(sum, latched, clock)    // latches the sum on every rising edge
+
+const read = (bus) => bus.map((w) => w.getSignal()).reverse().join('')
+five.forEach((w, i) => w.propagateSignal([1, 0, 1][i])) // 101
+reset[0].propagateSignal(1); simulator.run()
+clock.tick(); clock.tick()            // one full cycle with reset high -> count = 000
+reset[0].propagateSignal(0); simulator.run()
+clock.tick(); clock.tick()
+console.log(read(count), read(sum), read(latched)) // 001 0110 0101
+clock.tick(); clock.tick()
+console.log(read(count), read(sum), read(latched)) // 010 0111 0110
+```
+
 Or maybe we want to build something from existing abstractions?
 
 #### Abstraction Rules and Specs
@@ -118,9 +163,9 @@ class FourInpAndGate extends Hardware {
   constructor(a, b, c, d, o) {
     super([a, b, c, d, o])
     this.internalWiring = wires(2) // declare wires to be used internally
-    this.components.push(new AndGate(a, b, this.internalWiring[0]))
-    this.components.push(new AndGate(c, d, this.internalWiring[1]))
-    this.components.push(new AndGate(this.internalWiring[0], this.internalWiring[1], o))
+    this.components.push(new AndGate(a, b, [this.internalWiring[0]]))
+    this.components.push(new AndGate(c, d, [this.internalWiring[1]]))
+    this.components.push(new AndGate([this.internalWiring[0]], [this.internalWiring[1]], o))
   }
 
 }
