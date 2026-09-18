@@ -1,3 +1,5 @@
+const { simulator } = require('../Connectors/transport')
+
 class StringIO {
 
   constructor({ioMapping}) {
@@ -17,6 +19,9 @@ class StringIO {
       ++pos
       --inpIndex
     }
+
+    // settle the circuit before reading outputs
+    simulator.run()
 
     let outBuff = this.o.map((wire) => {
       return wire.getSignal()

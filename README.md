@@ -130,9 +130,9 @@ const o = wires(1)
 const fourInpAnd = new FourInpAndGate(a, b, c, d, o)
 const ioHandler = new StringIO(fourInpAnd)
 
-console.log(ioHandler('0', '1', '1', '1')) // prints 0
+console.log(ioHandler.input('0', '1', '1', '1')) // prints 0
 
-console.log(ioHandler('1', '1', '1', '1')) // prints 1
+console.log(ioHandler.input('1', '1', '1', '1')) // prints 1
 ```
 
 ### Creating a Declarative Hardware Component
@@ -183,6 +183,19 @@ class AndGate extends Hardware {
 
 New Hardware Component Proposals should be put up as an issue to discuss it's vialibility and modelling. I won't be considering anything else other than component proposals at the moment.
 
-I am also facing some problems in figuring out how to implement clock-edge driven circuits and circuits that have a feedback to them. Most of time, infinte events are triggered due to the feedbacking in the circuits.
+#### Simulation model
+
+Signals are not propagated immediately. `propagateSignal` schedules a write on a shared `Simulator`, which applies writes in **delta cycles**: each cycle applies every pending write, then evaluates every component whose inputs changed. This makes results independent of the order in which components were constructed, and lets feedback circuits (latches, flip-flops) settle deterministically. A circuit that never settles (e.g. a NOT gate wired to its own output) throws `Circuit did not settle after N delta cycles` instead of overflowing the stack.
+
+`StringIO.input()` settles the circuit before reading outputs. To drive clocked circuits use `Clock` from `Connectors` — `clock.tick()` flips the clock and settles the circuit synchronously:
+
+```js
+const { wires, Clock } = require('architectjs')('Connectors')
+const clock = new Clock(0)
+const ff = new SRFlipFlop(s, r, qqbar, clock)
+clock.tick() // rising edge
+```
+
+Call `simulator.run()` yourself if you write to wires directly outside `StringIO` or `Clock`.
 
 There are just so many possibilities to do here! Would love to get contributions from the community :smile:
