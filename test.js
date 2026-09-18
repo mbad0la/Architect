@@ -1,8 +1,8 @@
 const test = require('ava').default
-const { wires, Pulse } = require('./Connectors/transport')
+const { wires, Pulse, Clock, simulator } = require('./Connectors/transport')
 const { NotGate, AndGate, TriInpAndGate, XorGate } = require('./Combinational/gates')
 const { PipoAdder, HalfAdder, FullAdder } = require('./Combinational/arithmetics')
-const { SRFlipFlop } = require('./Sequential/ff')
+const { SRFlipFlop, DFlipFlop } = require('./Sequential/ff')
 const { StringIO } = require('./Utility/ioManager')
 const { Decoder1x2, Decoder2x4 } = require('./Combinational/decoders')
 
@@ -238,4 +238,42 @@ test('2x4 Decoder : 3', t => {
   const d2x4 = new Decoder2x4(inputX, inputY, output)
   const ioHandler = new StringIO(d2x4)
   t.is(ioHandler.input('1', '1'), '0001')
+})
+
+test('Simulator : propagation is independent of listener registration order', t => {
+  // master-slave D flip-flop built two ways; must give the same answer
+  const build = (inverterFirst) => {
+    const d = wires(1), clk = new Clock(0), nclk = wires(1), m = wires(2), q = wires(2)
+    if (inverterFirst) { new NotGate([clk], nclk); new DFlipFlop(d, m, clk) }
+    else { new DFlipFlop(d, m, clk); new NotGate([clk], nclk) }
+    new DFlipFlop([m[0]], q, nclk[0])
+    d[0].propagateSignal(0); clk.tick(); clk.tick()
+    d[0].propagateSignal(1); simulator.run()
+    clk.tick()
+    const afterRise = q[0].getSignal()
+    clk.tick()
+    const afterFall = q[0].getSignal()
+    return [afterRise, afterFall]
+  }
+  t.deepEqual(build(true), [0, 1])
+  t.deepEqual(build(false), [0, 1])
+})
+
+test('Simulator : unstable feedback throws instead of overflowing the stack', t => {
+  const w = wires(1, 'ring')
+  new NotGate(w, w)
+  w[0].propagateSignal(0)
+  t.throws(() => simulator.run(), { message: /did not settle.*ring\[0\]/ })
+})
+
+test('Clock : SR-Flip-Flop ignores inputs while clock is low', t => {
+  const s = wires(1), r = wires(1), qqbar = wires(2)
+  const clock = new Clock(1)
+  const ff = new SRFlipFlop(s, r, qqbar, clock)
+  const ioHandler = new StringIO(ff)
+  t.is(ioHandler.input('1', '0'), '1')
+  clock.tick() // clock -> 0
+  t.is(ioHandler.input('0', '1'), '1')
+  clock.tick() // clock -> 1, reset now takes effect
+  t.is(qqbar[0].getSignal(), 0)
 })
