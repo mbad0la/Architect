@@ -31,16 +31,38 @@ Let's get to business!
   * NandGate
   * NorGate
   * XnorGate
-* Decoders
+  * BitwiseAnd, BitwiseOr, BitwiseXor, BitwiseNot (N-bit buses)
+* Decoders / Encoders
   * Decoder1x2
   * Decoder2x4
+  * Encoder4x2
+* Multiplexers (N-bit buses)
+  * Mux2x1
+  * Mux4x1
+  * Demux1x2
 * Arithmetics
   * HalfAdder
   * FullAdder
-  * PipoAdder
-* Flip-Flops
+  * PipoAdder (optional carry in)
+  * PipoSubtractor (two's complement)
+* Comparators
+  * Comparator (N-bit unsigned: lt / eq / gt)
+* ALU
+  * ALU (N-bit: ADD, SUB, AND, OR with carry and zero flags)
+* Latches (level-sensitive)
+  * SRLatch
+  * DLatch
+* Flip-Flops (rising-edge triggered, master-slave)
   * SRFlipFlop
   * DFlipFlop
+* Registers and Counters
+  * Register
+  * ShiftRegister
+  * Counter (synchronous, with synchronous reset)
+
+#### Bus convention
+
+On every bus, `wire[0]` is the least significant bit — on inputs, outputs and internal wiring alike, like `std_logic_vector(n downto 0)` in VHDL. This is what lets you plug one component's output bus straight into another's input bus without reversing anything. `StringIO` writes and reads strings MSB first like a binary literal, so `'0110'` on a 4-wire bus drives `wire[1]` and `wire[2]`, and a sum bus prints with its carry out on the left.
 
 ### :electric_plug: Plug-n-Play
 
@@ -86,6 +108,52 @@ const ioHandler = new StringIO(hWare)
 console.log(ioHandler.input('1111', '1111')) // prints 11110
 ```
 
+An ALU: every operation is computed in parallel and a 2-bit `op` selects which one reaches `result`. `flags` is `[carry, zero]`; after a `SUB`, `zero` means `a == b` and `carry` means `a >= b`.
+
+```js
+const { wires } = require('architectjs')('Connectors')
+const { ALU } = require('architectjs')('ALU')
+const { StringIO } = require('architectjs')('IO')
+
+const a = wires(4), b = wires(4), op = wires(2), result = wires(4), flags = wires(2)
+const alu = new StringIO(new ALU(a, b, op, result, flags))
+
+// output string is: zero carry result
+console.log(alu.input('0101', '0011', ALU.ADD)) // prints 001000  (5 + 3 = 8)
+console.log(alu.input('1001', '0011', ALU.SUB)) // prints 010110  (9 - 3 = 6, no borrow)
+console.log(alu.input('0101', '0101', ALU.SUB)) // prints 110000  (equal: zero and carry)
+console.log(alu.input('1100', '1010', ALU.AND)) // prints 001000
+```
+
+And a clocked circuit, composed from buses: a counter feeding an adder feeding a register.
+
+```js
+const { wires, Clock, simulator } = require('architectjs')('Connectors')
+const { PipoAdder } = require('architectjs')('Arithmetics')
+const { Counter, Register } = require('architectjs')('Sequential')
+
+const clock = new Clock(0)
+const reset = wires(1)
+const count = wires(3)
+const five = wires(3)
+const sum = wires(4)
+const latched = wires(4)
+
+new Counter(reset, count, clock)
+new PipoAdder(count, five, sum)      // count + 5, no bit reversing needed
+new Register(sum, latched, clock)    // latches the sum on every rising edge
+
+const read = (bus) => bus.map((w) => w.getSignal()).reverse().join('')
+five.forEach((w, i) => w.propagateSignal([1, 0, 1][i])) // 101
+reset[0].propagateSignal(1); simulator.run()
+clock.tick(); clock.tick()            // one full cycle with reset high -> count = 000
+reset[0].propagateSignal(0); simulator.run()
+clock.tick(); clock.tick()
+console.log(read(count), read(sum), read(latched)) // 001 0110 0101
+clock.tick(); clock.tick()
+console.log(read(count), read(sum), read(latched)) // 010 0111 0110
+```
+
 Or maybe we want to build something from existing abstractions?
 
 #### Abstraction Rules and Specs
@@ -93,6 +161,7 @@ Or maybe we want to build something from existing abstractions?
 * Every Class/hardware extends on `Hardware`.
 * Every initialisation argument to the class instance has to be an array of `Wire` instances (obtained from the `wires` method).
 * An array consisting of I/O `wires` is passed onto the parent class `Hardware`, with only the last element being the output parameter. It is necessary to provide every input parameter and the output parameter to be able to wrap this in a `StringIO` instance to do I/O operations with `string` arguments.
+* Sequential hardware passes its clock `Wire` as an optional second argument to `Hardware` (`super([d, q], clock)`). It is available as `this.clock` and is kept out of `ioMapping`, so `StringIO` drives only the data ports and the clock is driven with `clock.tick()`.
 * Every class instance has two instance variables available from the parent `Hardware` instance :
   * internalWiring - Array of `Wire` instances (initially empty).
   * components - Array of abstractions used to build your hardware (initially empty).
@@ -114,9 +183,9 @@ class FourInpAndGate extends Hardware {
   constructor(a, b, c, d, o) {
     super([a, b, c, d, o])
     this.internalWiring = wires(2) // declare wires to be used internally
-    this.components.push(new AndGate(a, b, this.internalWiring[0]))
-    this.components.push(new AndGate(c, d, this.internalWiring[1]))
-    this.components.push(new AndGate(this.internalWiring[0], this.internalWiring[1], o))
+    this.components.push(new AndGate(a, b, [this.internalWiring[0]]))
+    this.components.push(new AndGate(c, d, [this.internalWiring[1]]))
+    this.components.push(new AndGate([this.internalWiring[0]], [this.internalWiring[1]], o))
   }
 
 }
@@ -142,6 +211,7 @@ console.log(ioHandler.input('1', '1', '1', '1')) // prints 1
 * Every Class/hardware extends on `Hardware`.
 * All the logic goes inside the `hardware` method of your component's Class.
 * Event to be listened for must be `signal`.
+* Call `hardware()` once at the end of the constructor: wires only emit when they change, so a component attached to wires that already carry a signal would otherwise not evaluate until the next change.
 
 #### Let's get started
 
@@ -165,6 +235,7 @@ class AndGate extends Hardware {
     this.hardware = this.hardware.bind(this)
     x[0].on('signal', this.hardware)
     y[0].on('signal', this.hardware)
+    this.hardware() // evaluate now: inputs may already carry a signal
   }
 
   hardware() {
@@ -187,14 +258,32 @@ New Hardware Component Proposals should be put up as an issue to discuss it's vi
 
 Signals are not propagated immediately. `propagateSignal` schedules a write on a shared `Simulator`, which applies writes in **delta cycles**: each cycle applies every pending write, then evaluates every component whose inputs changed. This makes results independent of the order in which components were constructed, and lets feedback circuits (latches, flip-flops) settle deterministically. A circuit that never settles (e.g. a NOT gate wired to its own output) throws `Circuit did not settle after N delta cycles` instead of overflowing the stack.
 
-`StringIO.input()` settles the circuit before reading outputs. To drive clocked circuits use `Clock` from `Connectors` — `clock.tick()` flips the clock and settles the circuit synchronously:
+`StringIO.input()` settles the circuit before reading outputs. To drive clocked circuits use `Clock` from `Connectors` — `clock.tick()` flips the clock and settles the circuit synchronously.
+
+#### Latches vs. Flip-Flops
+
+`SRLatch` and `DLatch` are **level-sensitive**: while the clock is high they are transparent (the output follows the input), and while it is low they hold. `SRFlipFlop` and `DFlipFlop` are **rising-edge triggered**: they are built master-slave style from two latches on opposite clock phases, so the input is sampled only at the 0 → 1 transition of the clock and ignored otherwise. Use flip-flops for anything that chains state (registers, shift registers, counters) — a latch would let data race through every stage in a single clock phase.
 
 ```js
-const { wires, Clock } = require('architectjs')('Connectors')
+const { wires, Clock, simulator } = require('architectjs')('Connectors')
+const { DFlipFlop } = require('architectjs')('Sequential')
+
+const d = wires(1)
+const qqbar = wires(2) // [Q, Q']
 const clock = new Clock(0)
-const ff = new SRFlipFlop(s, r, qqbar, clock)
-clock.tick() // rising edge
+const ff = new DFlipFlop(d, qqbar, clock)
+
+d[0].propagateSignal(1)
+simulator.run()
+qqbar[0].getSignal() // undefined - no edge yet
+clock.tick()         // rising edge
+qqbar[0].getSignal() // 1
+d[0].propagateSignal(0)
+simulator.run()
+qqbar[0].getSignal() // still 1 - only changes on the next rising edge
 ```
+
+The clock is passed as a single `Wire` (not an array). It is stored on the component as `ff.clock` rather than in `ioMapping`, so `ioHandler.input(...)` drives only the data inputs and you tick the clock separately.
 
 Call `simulator.run()` yourself if you write to wires directly outside `StringIO` or `Clock`.
 

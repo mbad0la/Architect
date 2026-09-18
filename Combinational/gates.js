@@ -11,6 +11,7 @@ class AndGate extends Hardware {
     this.hardware = this.hardware.bind(this)
     x[0].on('signal', this.hardware)
     y[0].on('signal', this.hardware)
+    this.hardware() // evaluate now: inputs may already carry a signal
   }
 
   hardware() {
@@ -38,6 +39,7 @@ class TriInpAndGate extends Hardware {
     x[0].on('signal', this.hardware)
     y[0].on('signal', this.hardware)
     z[0].on('signal', this.hardware)
+    this.hardware() // evaluate now: inputs may already carry a signal
   }
 
   hardware() {
@@ -64,6 +66,7 @@ class OrGate extends Hardware {
     this.hardware = this.hardware.bind(this)
     x[0].on('signal', this.hardware)
     y[0].on('signal', this.hardware)
+    this.hardware() // evaluate now: inputs may already carry a signal
   }
 
   hardware() {
@@ -89,6 +92,7 @@ class XorGate extends Hardware {
     this.hardware = this.hardware.bind(this)
     x[0].on('signal', this.hardware)
     y[0].on('signal', this.hardware)
+    this.hardware() // evaluate now: inputs may already carry a signal
   }
 
   hardware() {
@@ -110,6 +114,7 @@ class NotGate extends Hardware {
     this.o = o
     this.hardware = this.hardware.bind(this)
     x[0].on('signal', this.hardware)
+    this.hardware() // evaluate now: inputs may already carry a signal
   }
 
   hardware() {
@@ -132,6 +137,7 @@ class NandGate extends Hardware {
     this.hardware = this.hardware.bind(this)
     x[0].on('signal', this.hardware)
     y[0].on('signal', this.hardware)
+    this.hardware() // evaluate now: inputs may already carry a signal
   }
 
   hardware() {
@@ -157,6 +163,7 @@ class NorGate extends Hardware {
     this.hardware = this.hardware.bind(this)
     x[0].on('signal', this.hardware)
     y[0].on('signal', this.hardware)
+    this.hardware() // evaluate now: inputs may already carry a signal
   }
 
   hardware() {
@@ -182,6 +189,7 @@ class XnorGate extends Hardware {
     this.hardware = this.hardware.bind(this)
     x[0].on('signal', this.hardware)
     y[0].on('signal', this.hardware)
+    this.hardware() // evaluate now: inputs may already carry a signal
   }
 
   hardware() {
@@ -194,4 +202,37 @@ class XnorGate extends Hardware {
 
 }
 
-module.exports = { AndGate, TriInpAndGate, OrGate, XorGate, NotGate, NandGate, NorGate, XnorGate }
+// Bitwise gates over N-bit buses: one 1-bit gate per bit position.
+
+function bitwise(Gate) {
+  return class extends Hardware {
+    constructor(a, b, o) {
+      if (a.length != b.length || o.length != a.length) throw new Error('Invalid Connection/s')
+      super([a, b, o])
+      for (let i = 0; i < a.length; i++) {
+        this.components.push(new Gate([a[i]], [b[i]], [o[i]]))
+      }
+    }
+  }
+}
+
+class BitwiseAnd extends bitwise(AndGate) {}
+class BitwiseOr extends bitwise(OrGate) {}
+class BitwiseXor extends bitwise(XorGate) {}
+
+class BitwiseNot extends Hardware {
+
+  constructor(a, o) {
+    if (o.length != a.length) throw new Error('Invalid Connection/s')
+    super([a, o])
+    for (let i = 0; i < a.length; i++) {
+      this.components.push(new NotGate([a[i]], [o[i]]))
+    }
+  }
+
+}
+
+module.exports = {
+  AndGate, TriInpAndGate, OrGate, XorGate, NotGate, NandGate, NorGate, XnorGate,
+  BitwiseAnd, BitwiseOr, BitwiseXor, BitwiseNot
+}

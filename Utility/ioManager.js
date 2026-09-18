@@ -1,5 +1,7 @@
 const { simulator } = require('../Connectors/transport')
 
+// Bus convention: wire[0] is the LSB. Strings are written MSB first like a
+// binary literal, so '0110' on a 4-wire bus drives wire[1] and wire[2].
 class StringIO {
 
   constructor({ioMapping}) {
@@ -9,27 +11,21 @@ class StringIO {
   }
 
   input(...inputSeqs) {
-    let inpIndex = inputSeqs[0].length - 1
-    let totalInps = this.i.length
-    let pos = 0
-    while (inpIndex >= 0) {
-      for (let inpNum = 0; inpNum < totalInps; ++inpNum) {
-        this.i[inpNum][pos].propagateSignal(Number(inputSeqs[inpNum][inpIndex]))
-      }
-      ++pos
-      --inpIndex
+    if (inputSeqs.length != this.i.length) {
+      throw new Error(`Expected ${this.i.length} input string/s, got ${inputSeqs.length}`)
     }
+    this.i.forEach((bus, inpNum) => {
+      const seq = inputSeqs[inpNum]
+      if (seq.length != bus.length) {
+        throw new Error(`Input ${inpNum} is ${bus.length} wire/s wide, got '${seq}'`)
+      }
+      bus.forEach((wire, pos) => wire.propagateSignal(Number(seq[seq.length - 1 - pos])))
+    })
 
     // settle the circuit before reading outputs
     simulator.run()
 
-    let outBuff = this.o.map((wire) => {
-      return wire.getSignal()
-    })
-
-    outBuff = outBuff.join('')
-
-    return outBuff
+    return this.o.map((wire) => wire.getSignal()).reverse().join('')
   }
 
 }
