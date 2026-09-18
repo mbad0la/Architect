@@ -12,8 +12,24 @@
     "architectjs",
     "library"
   ],
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "Combinational/",
+    "Connectors/",
+    "Sequential/",
+    "Utility/"
+  ],
+  "engines": {
+    "node": ">=22.20"
+  },
   "scripts": {
     "test": "ava"
+  },
+  "ava": {
+    "files": [
+      "test.js"
+    ]
   },
   "repository": "mbad0la/Architect",
   "author": {
@@ -23,6 +39,6 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "ava": "^0.25.0"
+    "ava": "^8.0.1"
   }
 }

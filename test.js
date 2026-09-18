@@ -1,10 +1,10 @@
-import test from 'ava'
-import { wires, Pulse } from './Connectors/transport'
-import { NotGate, AndGate, TriInpAndGate, XorGate } from './Combinational/gates'
-import { PipoAdder, HalfAdder, FullAdder } from './Combinational/arithmetics'
-import { SRFlipFlop } from './Sequential/ff'
-import { StringIO } from './Utility/ioManager'
-import { Decoder1x2, Decoder2x4 } from './Combinational/decoders'
+const test = require('ava').default
+const { wires, Pulse } = require('./Connectors/transport')
+const { NotGate, AndGate, TriInpAndGate, XorGate } = require('./Combinational/gates')
+const { PipoAdder, HalfAdder, FullAdder } = require('./Combinational/arithmetics')
+const { SRFlipFlop } = require('./Sequential/ff')
+const { StringIO } = require('./Utility/ioManager')
+const { Decoder1x2, Decoder2x4 } = require('./Combinational/decoders')
 
 
 test('Not-Gate : 1', t => {
