@@ -31,6 +31,7 @@ Let's get to business!
   * NandGate
   * NorGate
   * XnorGate
+  * BitwiseAnd, BitwiseOr, BitwiseXor, BitwiseNot (N-bit buses)
 * Decoders / Encoders
   * Decoder1x2
   * Decoder2x4
@@ -46,6 +47,8 @@ Let's get to business!
   * PipoSubtractor (two's complement)
 * Comparators
   * Comparator (N-bit unsigned: lt / eq / gt)
+* ALU
+  * ALU (N-bit: ADD, SUB, AND, OR with carry and zero flags)
 * Latches (level-sensitive)
   * SRLatch
   * DLatch
@@ -103,6 +106,23 @@ const sum = wires(5)
 const hWare = new PipoAdder(inputA, inputB, sum)
 const ioHandler = new StringIO(hWare)
 console.log(ioHandler.input('1111', '1111')) // prints 11110
+```
+
+An ALU: every operation is computed in parallel and a 2-bit `op` selects which one reaches `result`. `flags` is `[carry, zero]`; after a `SUB`, `zero` means `a == b` and `carry` means `a >= b`.
+
+```js
+const { wires } = require('architectjs')('Connectors')
+const { ALU } = require('architectjs')('ALU')
+const { StringIO } = require('architectjs')('IO')
+
+const a = wires(4), b = wires(4), op = wires(2), result = wires(4), flags = wires(2)
+const alu = new StringIO(new ALU(a, b, op, result, flags))
+
+// output string is: zero carry result
+console.log(alu.input('0101', '0011', ALU.ADD)) // prints 001000  (5 + 3 = 8)
+console.log(alu.input('1001', '0011', ALU.SUB)) // prints 010110  (9 - 3 = 6, no borrow)
+console.log(alu.input('0101', '0101', ALU.SUB)) // prints 110000  (equal: zero and carry)
+console.log(alu.input('1100', '1010', ALU.AND)) // prints 001000
 ```
 
 And a clocked circuit, composed from buses: a counter feeding an adder feeding a register.
@@ -191,6 +211,7 @@ console.log(ioHandler.input('1', '1', '1', '1')) // prints 1
 * Every Class/hardware extends on `Hardware`.
 * All the logic goes inside the `hardware` method of your component's Class.
 * Event to be listened for must be `signal`.
+* Call `hardware()` once at the end of the constructor: wires only emit when they change, so a component attached to wires that already carry a signal would otherwise not evaluate until the next change.
 
 #### Let's get started
 
@@ -214,6 +235,7 @@ class AndGate extends Hardware {
     this.hardware = this.hardware.bind(this)
     x[0].on('signal', this.hardware)
     y[0].on('signal', this.hardware)
+    this.hardware() // evaluate now: inputs may already carry a signal
   }
 
   hardware() {

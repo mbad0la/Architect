@@ -14,6 +14,8 @@ uses [Semantic Versioning](https://semver.org/) (0.x: minor bumps may break).
 - `Mux2x1`, `Mux4x1`, `Demux1x2` over N-bit buses.
 - `Encoder4x2`.
 - `Comparator`: N-bit unsigned, outputs `[lt, eq, gt]`.
+- `ALU`: N-bit ADD / SUB / AND / OR selected by a 2-bit `op`, with `[carry, zero]` flags.
+- `BitwiseAnd`, `BitwiseOr`, `BitwiseXor`, `BitwiseNot` over N-bit buses.
 - `Hardware` takes an optional second argument `clock`, exposed as `this.clock`.
 - `StringIO.input()` validates the argument count and each string's width.
 - `CHANGELOG.md` and a GitHub Actions workflow running the test suite.
@@ -30,6 +32,8 @@ uses [Semantic Versioning](https://semver.org/) (0.x: minor bumps may break).
 - `Wire` no longer triggers Node's `MaxListenersExceededWarning` on high fan-out nets.
 
 ### Fixed
+- Gates evaluate on construction, so a component attached to wires that already carry a
+  signal produces its output without waiting for the next change.
 - README `FourInpAndGate` example passed bare wires instead of wire arrays.
 
 ## [0.2.0] - 2026-09-18

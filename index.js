@@ -6,6 +6,7 @@ module.exports = function(path) {
     'Encoders': require('./Combinational/encoders'),
     'Multiplexers': require('./Combinational/multiplexers'),
     'Comparators': require('./Combinational/comparators'),
+    'ALU': require('./Combinational/alu'),
     'Connectors': require('./Connectors/transport'),
     'Sequential': {
       ...require('./Sequential/ff'),

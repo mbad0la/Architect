@@ -1,6 +1,6 @@
 const test = require('ava').default
 const { wires, Pulse, Clock, simulator } = require('./Connectors/transport')
-const { NotGate, AndGate, TriInpAndGate, XorGate } = require('./Combinational/gates')
+const { NotGate, AndGate, TriInpAndGate, XorGate, BitwiseAnd, BitwiseOr, BitwiseXor, BitwiseNot } = require('./Combinational/gates')
 const { PipoAdder, PipoSubtractor, HalfAdder, FullAdder } = require('./Combinational/arithmetics')
 const { SRLatch, DLatch, SRFlipFlop, DFlipFlop } = require('./Sequential/ff')
 const { Register, ShiftRegister } = require('./Sequential/registers')
@@ -10,6 +10,7 @@ const { Decoder1x2, Decoder2x4 } = require('./Combinational/decoders')
 const { Encoder4x2 } = require('./Combinational/encoders')
 const { Mux2x1, Mux4x1, Demux1x2 } = require('./Combinational/multiplexers')
 const { Comparator } = require('./Combinational/comparators')
+const { ALU } = require('./Combinational/alu')
 
 // Read a bus as a binary string, MSB first (wire[0] is the LSB).
 const read = (bus) => bus.map((w) => w.getSignal()).reverse().join('')
@@ -339,6 +340,14 @@ test('Simulator : propagation is independent of listener registration order', t 
   t.deepEqual(build(false), [0, 1])
 })
 
+test('Simulator : a gate attached to wires that already carry a signal evaluates', t => {
+  const a = wires(1), b = wires(1), o = wires(1)
+  a[0].propagateSignal(1); b[0].propagateSignal(1); simulator.run()
+  new AndGate(a, b, o)
+  simulator.run()
+  t.is(o[0].getSignal(), 1)
+})
+
 test('Simulator : unstable feedback throws instead of overflowing the stack', t => {
   const w = wires(1, 'ring')
   new NotGate(w, w)
@@ -533,4 +542,56 @@ test('Composition : Counter -> PipoAdder -> Register with no bit reversing', t =
   t.is(read(count), '010')
   t.is(read(sum), '0111')
   t.is(read(latched), '0110')
+})
+
+test('Bitwise gates : operate per bit over a bus', t => {
+  const a = wires(4), b = wires(4)
+  const cases = [[BitwiseAnd, '1000'], [BitwiseOr, '1110'], [BitwiseXor, '0110']]
+  for (const [Gate, expected] of cases) {
+    const o = wires(4)
+    t.is(new StringIO(new Gate(a, b, o)).input('1100', '1010'), expected, Gate.name)
+  }
+  const o = wires(4)
+  t.is(new StringIO(new BitwiseNot(a, o)).input('1100'), '0011')
+})
+
+// ALU output prints as: zero carry result
+test('ALU : ADD', t => {
+  const a = wires(4), b = wires(4), op = wires(2), r = wires(4), f = wires(2)
+  const ioHandler = new StringIO(new ALU(a, b, op, r, f))
+  t.is(ioHandler.input('0101', '0011', ALU.ADD), '00' + '1000')
+  t.is(ioHandler.input('1111', '0001', ALU.ADD), '11' + '0000', 'wraps: zero and carry set')
+})
+
+test('ALU : SUB sets carry when a >= b and zero when equal', t => {
+  const a = wires(4), b = wires(4), op = wires(2), r = wires(4), f = wires(2)
+  const ioHandler = new StringIO(new ALU(a, b, op, r, f))
+  t.is(ioHandler.input('1001', '0011', ALU.SUB), '01' + '0110')
+  t.is(ioHandler.input('0011', '1001', ALU.SUB), '00' + '1010', 'borrow: carry clear')
+  t.is(ioHandler.input('0101', '0101', ALU.SUB), '11' + '0000')
+})
+
+test('ALU : AND and OR never set carry', t => {
+  const a = wires(4), b = wires(4), op = wires(2), r = wires(4), f = wires(2)
+  const ioHandler = new StringIO(new ALU(a, b, op, r, f))
+  t.is(ioHandler.input('1100', '1010', ALU.AND), '00' + '1000')
+  t.is(ioHandler.input('1100', '1010', ALU.OR), '00' + '1110')
+  t.is(ioHandler.input('1111', '1111', ALU.AND), '00' + '1111', 'no carry even when all bits set')
+  t.is(ioHandler.input('0000', '0000', ALU.OR), '10' + '0000')
+})
+
+test('ALU : 1-bit', t => {
+  const a = wires(1), b = wires(1), op = wires(2), r = wires(1), f = wires(2)
+  const ioHandler = new StringIO(new ALU(a, b, op, r, f))
+  t.is(ioHandler.input('1', '1', ALU.ADD), '11' + '0')
+  t.is(ioHandler.input('1', '0', ALU.SUB), '01' + '1')
+})
+
+test('ALU : op change alone re-selects the result', t => {
+  const a = wires(4), b = wires(4), op = wires(2), r = wires(4), f = wires(2)
+  new ALU(a, b, op, r, f)
+  const ioHandler = new StringIO({ ioMapping: [a, b, op, r] })
+  t.is(ioHandler.input('0110', '0011', ALU.ADD), '1001')
+  t.is(ioHandler.input('0110', '0011', ALU.SUB), '0011')
+  t.is(ioHandler.input('0110', '0011', ALU.AND), '0010')
 })

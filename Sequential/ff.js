@@ -34,16 +34,6 @@ class DLatch extends Hardware {
 
 }
 
-// Inverts the clock for a master latch. The NotGate only fires when the clock
-// changes, so seed its output from the clock's current level; otherwise the
-// master would sit undefined until the first edge.
-function invertedClock(c, out) {
-  const inverter = new NotGate([c], out)
-  const level = c.getSignal()
-  if (level !== undefined) out[0].propagateSignal(Number(!level))
-  return inverter
-}
-
 // Master-slave, rising-edge triggered. The master is open while the clock is
 // low and the slave while it is high, so they are never open together and the
 // input can only reach Q at the 0 -> 1 transition.
@@ -55,7 +45,7 @@ class SRFlipFlop extends Hardware {
     super([s, r, [qqbar[0]]], c)
     this.internalWiring = wires(3)
     const [notC, m, mbar] = this.internalWiring
-    this.components.push(invertedClock(c, [notC]))
+    this.components.push(new NotGate([c], [notC]))
     this.components.push(new SRLatch(s, r, [m, mbar], notC))
     this.components.push(new SRLatch([m], [mbar], qqbar, c))
   }
@@ -69,7 +59,7 @@ class DFlipFlop extends Hardware {
     super([d, [qqbar[0]]], c)
     this.internalWiring = wires(3)
     const [notC, m, mbar] = this.internalWiring
-    this.components.push(invertedClock(c, [notC]))
+    this.components.push(new NotGate([c], [notC]))
     this.components.push(new DLatch(d, [m, mbar], notC))
     this.components.push(new DLatch([m], qqbar, c))
   }
