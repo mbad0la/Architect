@@ -130,9 +130,9 @@ const o = wires(1)
 const fourInpAnd = new FourInpAndGate(a, b, c, d, o)
 const ioHandler = new StringIO(fourInpAnd)
 
-console.log(ioHandler('0', '1', '1', '1')) // prints 0
+console.log(ioHandler.input('0', '1', '1', '1')) // prints 0
 
-console.log(ioHandler('1', '1', '1', '1')) // prints 1
+console.log(ioHandler.input('1', '1', '1', '1')) // prints 1
 ```
 
 ### Creating a Declarative Hardware Component
