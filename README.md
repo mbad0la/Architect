@@ -28,6 +28,7 @@ Let's get to business!
   * OrGate
   * XorGate
   * NotGate
+  * Buffer
   * NandGate
   * NorGate
   * XnorGate
@@ -40,12 +41,14 @@ Let's get to business!
 * Multiplexers (N-bit buses)
   * Mux2x1
   * Mux4x1
+  * MuxNx1 (2^N buses, N-bit select)
   * Demux1x2
 * Arithmetics
   * HalfAdder
   * FullAdder
   * PipoAdder (optional carry in)
   * PipoSubtractor (two's complement)
+  * Incrementer
 * Comparators
   * Comparator (N-bit unsigned: lt / eq / gt)
 * ALU
@@ -57,11 +60,16 @@ Let's get to business!
   * SRFlipFlop
   * DFlipFlop
 * Registers and Counters
-  * Register
+  * Register (optional load enable)
   * ShiftRegister
+  * RegisterFile (2^N registers, two read ports, one write port)
   * Counter (synchronous, with synchronous reset)
+  * ProgramCounter (reset / load / enable)
 * Memory
   * RAM (2^N words of W bits: asynchronous read, synchronous write)
+  * ROM (programmed at construction)
+* CPU
+  * CPU (single-cycle 8-bit, 4 registers, 13 instructions) with `CPU.assemble`
 
 #### Bus convention
 
@@ -157,7 +165,7 @@ clock.tick(); clock.tick()
 console.log(read(count), read(sum), read(latched)) // 010 0111 0110
 ```
 
-A RAM: `dout` always shows the word at `addr` (asynchronous read), and on a rising edge with `we` high the word at `addr` takes `din`. Inside, a `DecoderNxM` enabled by `we` picks which word's `Register` loads, and a tree of `Mux2x1` indexed by `addr` drives `dout`.
+A RAM: `dout` always shows the word at `addr` (asynchronous read), and on a rising edge with `we` high the word at `addr` takes `din`. Inside, a `DecoderNxM` enabled by `we` picks which word's `Register` loads, and a `MuxNx1` indexed by `addr` drives `dout`.
 
 ```js
 const { wires, Clock } = require('architectjs')('Connectors')
@@ -176,6 +184,60 @@ console.log(ram.input('11', '00000000', '0')) // prints 00001111
 console.log(ram.input('00', '00000000', '0')) // prints '' - never written, still undefined
 ```
 
+And finally a computer. The `CPU` keeps its memories external so you pick their size: `pc` addresses a `ROM` holding the program, and `addr` / `dataOut` / `we` / `dataIn` connect to a `RAM`. Buses are plain arrays, so a 16-word ROM just takes `pc.slice(0, 4)`.
+
+```js
+const { wires, Clock, simulator } = require('architectjs')('Connectors')
+const { CPU, ROM, RAM } = require('architectjs')('Sequential')
+
+const program = CPU.assemble(`
+    LDI r0, 0        ; acc
+    LDI r1, 5        ; n
+    LDI r2, 0
+    LDI r3, 1
+  loop:
+    BEQ r1, r2, done
+    ADD r0, r1
+    SUB r1, r3
+    JMP loop
+  done:
+    LDI r1, 16
+    ST r0, [r1]      ; mem[16] = 1 + 2 + 3 + 4 + 5
+    HLT
+`)
+
+const clock = new Clock(0)
+const reset = wires(1), instr = wires(16), dataIn = wires(8), pc = wires(8)
+const addr = wires(8), dataOut = wires(8), we = wires(1), halt = wires(1)
+const cpu = new CPU(reset, instr, dataIn, pc, addr, dataOut, we, halt, clock)
+const rom = new ROM(pc.slice(0, 4), instr, program)          // 16 x 16-bit
+const ram = new RAM(addr.slice(0, 5), dataOut, we, dataIn, clock) // 32 x 8-bit
+
+const read = (bus) => bus.map((w) => w.getSignal()).reverse().join('')
+reset[0].propagateSignal(1); simulator.run(); clock.tick(); clock.tick()
+reset[0].propagateSignal(0); simulator.run()
+while (halt[0].getSignal() !== 1) { clock.tick(); clock.tick() }
+console.log(read(ram.words[16]))                               // 00001111
+console.log(cpu.registers.registers.map(read))                 // [ '00001111', '00010000', '00000000', '00000001' ]
+console.log(cpu.gateCount(), ram.gateCount())                  // 1120 4458
+```
+
+The instruction set (16-bit words, `op(4) rd(2) rs(2) imm(8)`):
+
+| Mnemonic | Effect |
+|---|---|
+| `NOP` | |
+| `LDI rd, imm` | `rd = imm` |
+| `LD rd, [rs]` | `rd = mem[rs]` |
+| `ST rd, [rs]` | `mem[rs] = rd` |
+| `ADD` / `SUB` / `AND` / `OR rd, rs` | `rd = rd op rs` |
+| `ADDI rd, imm` | `rd = rd + imm` |
+| `JMP imm` | `pc = imm` |
+| `BEQ` / `BNE rd, rs, imm` | `if rd == rs` (`!=`) `pc = imm` |
+| `HLT` | stop; `halt` goes high |
+
+Every instruction takes one clock cycle. `CPU.assemble` understands `;` comments and `label:` definitions; `CPU.encode(op, rd, rs, imm)` builds a single word.
+
 Or maybe we want to build something from existing abstractions?
 
 #### Abstraction Rules and Specs
@@ -190,6 +252,8 @@ Or maybe we want to build something from existing abstractions?
 * Your entire logic goes into your Class' constructor.
 * `internalWiring` variable is used to initialise `Wire` instances that are not a part of the I/O for the hardware but are required to inter-connect the sub-components in your abstraction.
 * `components` variable is used to store instances of subcomponents used in your hardware. This helps a designer to quickly refer to all the build blocks that went into making a particular piece of hardware.
+* `gateCount()` returns the number of primitive gates in a piece of hardware: a component with no sub-components counts as one, everything else sums its `components`.
+* `constant(1)` / `constant(0)` from `Connectors` give a wire tied high or low, for inputs that never change.
 
 
 Let's build a 4-input AND Gate using the above rules and specifications.

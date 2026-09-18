@@ -1,15 +1,16 @@
 const test = require('ava').default
-const { wires, Pulse, Clock, simulator } = require('./Connectors/transport')
-const { NotGate, AndGate, TriInpAndGate, XorGate, BitwiseAnd, BitwiseOr, BitwiseXor, BitwiseNot } = require('./Combinational/gates')
-const { PipoAdder, PipoSubtractor, HalfAdder, FullAdder } = require('./Combinational/arithmetics')
+const { wires, Pulse, Clock, simulator, constant } = require('./Connectors/transport')
+const { NotGate, AndGate, TriInpAndGate, XorGate, Buffer, BitwiseAnd, BitwiseOr, BitwiseXor, BitwiseNot } = require('./Combinational/gates')
+const { PipoAdder, PipoSubtractor, HalfAdder, FullAdder, Incrementer } = require('./Combinational/arithmetics')
 const { SRLatch, DLatch, SRFlipFlop, DFlipFlop } = require('./Sequential/ff')
-const { Register, ShiftRegister } = require('./Sequential/registers')
-const { Counter } = require('./Sequential/counters')
-const { RAM } = require('./Sequential/memory')
+const { Register, ShiftRegister, RegisterFile } = require('./Sequential/registers')
+const { Counter, ProgramCounter } = require('./Sequential/counters')
+const { RAM, ROM } = require('./Sequential/memory')
+const { CPU } = require('./Sequential/cpu')
 const { StringIO } = require('./Utility/ioManager')
 const { Decoder1x2, Decoder2x4, DecoderNxM } = require('./Combinational/decoders')
 const { Encoder4x2 } = require('./Combinational/encoders')
-const { Mux2x1, Mux4x1, Demux1x2 } = require('./Combinational/multiplexers')
+const { Mux2x1, Mux4x1, MuxNx1, Demux1x2 } = require('./Combinational/multiplexers')
 const { Comparator } = require('./Combinational/comparators')
 const { ALU } = require('./Combinational/alu')
 
@@ -699,4 +700,223 @@ test('Composition : Counter addresses a RAM', t => {
     clock.tick(); clock.tick()
   }
   t.deepEqual(trace, ['11', '10', '01', '00'])
+})
+
+test('Buffer and constant', t => {
+  const x = wires(1), o = wires(1)
+  const ioHandler = new StringIO(new Buffer(x, o))
+  t.is(ioHandler.input('1'), '1')
+  t.is(ioHandler.input('0'), '0')
+  const vcc = constant(1), gnd = constant(0), y = wires(2)
+  new Buffer([vcc], [y[0]]); new Buffer([gnd], [y[1]])
+  simulator.run()
+  t.is(read(y), '01')
+  t.is(vcc.name, 'vcc'); t.is(gnd.name, 'gnd')
+})
+
+test('Incrementer : a + 1 mod 2^N', t => {
+  const a = wires(4), o = wires(4)
+  const ioHandler = new StringIO(new Incrementer(a, o))
+  t.is(ioHandler.input('0000'), '0001')
+  t.is(ioHandler.input('0111'), '1000')
+  t.is(ioHandler.input('1110'), '1111')
+  t.is(ioHandler.input('1111'), '0000', 'wraps')
+  const a1 = wires(1), o1 = wires(1)
+  const one = new StringIO(new Incrementer(a1, o1))
+  t.is(one.input('0'), '1'); t.is(one.input('1'), '0')
+})
+
+test('MuxNx1 : o = inputs[s] over 8 buses', t => {
+  const inputs = []
+  for (let k = 0; k < 8; k++) inputs.push(wires(3))
+  const s = wires(3), o = wires(3)
+  const ioHandler = new StringIO(new MuxNx1(inputs, s, o))
+  const values = ['000', '001', '010', '011', '100', '101', '110', '111']
+  for (let k = 0; k < 8; k++) t.is(ioHandler.input(...values, values[k]), values[k])
+  t.throws(() => new MuxNx1(inputs.slice(0, 6), s, o))
+})
+
+test('Register : with enable, holds on edges where en is low', t => {
+  const d = wires(4), en = wires(1), q = wires(4), clock = new Clock(0)
+  const ioHandler = new StringIO(new Register(d, q, clock, en))
+  ioHandler.input('1010', '1'); clock.tick(); clock.tick()
+  t.is(read(q), '1010')
+  ioHandler.input('0101', '0'); clock.tick(); clock.tick()
+  t.is(read(q), '1010', 'en low: held')
+  ioHandler.input('0101', '1'); clock.tick()
+  t.is(read(q), '0101')
+})
+
+test('RegisterFile : two read ports, one write port', t => {
+  const ra = wires(2), rb = wires(2), wa = wires(2), wd = wires(4), we = wires(1)
+  const qa = wires(4), qb = wires(4), clock = new Clock(0)
+  const rf = new RegisterFile(ra, rb, wa, wd, we, qa, qb, clock)
+  const ioHandler = new StringIO(rf)
+  for (const [k, v] of [['00', '0001'], ['01', '0010'], ['10', '0100'], ['11', '1000']]) {
+    ioHandler.input('00', '00', k, v, '1'); clock.tick(); clock.tick()
+  }
+  // output string is: qb qa
+  t.is(ioHandler.input('01', '10', '00', '0000', '0'), '0100' + '0010')
+  t.is(ioHandler.input('11', '11', '00', '0000', '0'), '1000' + '1000', 'both ports may read the same register')
+  ioHandler.input('00', '00', '01', '1111', '0'); clock.tick(); clock.tick()
+  t.is(read(rf.registers[1]), '0010', 'we low: not written')
+  ioHandler.input('01', '00', '01', '1111', '1'); clock.tick()
+  t.is(read(qa), '1111', 'read port shows the new value right after the edge')
+})
+
+test('ProgramCounter : reset > load > enable > hold', t => {
+  const d = wires(4), load = wires(1), en = wires(1), reset = wires(1), q = wires(4), clock = new Clock(0)
+  const ioHandler = new StringIO(new ProgramCounter(d, load, en, reset, q, clock))
+  ioHandler.input('0000', '0', '0', '1'); clock.tick(); clock.tick()
+  t.is(read(q), '0000')
+  ioHandler.input('0000', '0', '1', '0'); clock.tick(); clock.tick(); clock.tick(); clock.tick()
+  t.is(read(q), '0010', 'increments while enabled')
+  ioHandler.input('1010', '1', '0', '0'); clock.tick(); clock.tick()
+  t.is(read(q), '1010', 'load works without en')
+  ioHandler.input('0000', '0', '0', '0'); clock.tick(); clock.tick()
+  t.is(read(q), '1010', 'holds when neither')
+  ioHandler.input('0110', '1', '1', '1'); clock.tick(); clock.tick()
+  t.is(read(q), '0000', 'reset wins')
+})
+
+test('ROM : o = contents[addr], missing words read 0', t => {
+  const addr = wires(2), o = wires(4)
+  const rom = new ROM(addr, o, ['1001', 6, '1111'])
+  const ioHandler = new StringIO(rom)
+  t.is(ioHandler.input('00'), '1001')
+  t.is(ioHandler.input('01'), '0110')
+  t.is(ioHandler.input('10'), '1111')
+  t.is(ioHandler.input('11'), '0000')
+  t.throws(() => new ROM(addr, o, ['10000']), { message: /Invalid ROM word/ })
+  t.throws(() => new ROM(addr, o, [1, 2, 3, 4, 5]))
+})
+
+test('gateCount : primitives count 1, composites sum their parts', t => {
+  t.is(new AndGate(wires(1), wires(1), wires(1)).gateCount(), 1)
+  t.is(new HalfAdder(wires(2), wires(2)).gateCount(), 2)
+  t.is(new FullAdder(wires(3), wires(2)).gateCount(), 5)
+  t.is(new DFlipFlop(wires(1), wires(2), new Clock(0)).gateCount(), 11)
+  t.is(new DecoderNxM(wires(3), wires(8)).gateCount(), 3 + 14)
+})
+
+test('CPU.assemble : encodes fields as op(4) rd(2) rs(2) imm(8) and resolves labels', t => {
+  t.is(CPU.encode('LDI', 2, 0, 5), '0001' + '10' + '00' + '00000101')
+  t.deepEqual(CPU.assemble(`
+    start: LDI r1, 3   ; comment
+           BNE r1, r0, start
+           HLT
+  `), [
+    '0001010000000011',
+    '1011010000000000',
+    '1100000000000000'
+  ])
+  t.throws(() => CPU.assemble('MUL r0, r1'), { message: /Unknown instruction/ })
+  t.throws(() => CPU.assemble('LDI r4, 1'), { message: /Expected a register/ })
+  t.throws(() => CPU.assemble('JMP nowhere'), { message: /number or label/ })
+})
+
+// Build a CPU with a 16-word ROM and a 32-byte RAM, reset it, and run until
+// halt. Returns the machine so tests can inspect registers and memory.
+const machine = (source) => {
+  const clock = new Clock(0)
+  const reset = wires(1), instr = wires(16), dataIn = wires(8), pc = wires(8)
+  const addr = wires(8), dataOut = wires(8), we = wires(1), halt = wires(1)
+  const cpu = new CPU(reset, instr, dataIn, pc, addr, dataOut, we, halt, clock)
+  const rom = new ROM(pc.slice(0, 4), instr, CPU.assemble(source))
+  const ram = new RAM(addr.slice(0, 5), dataOut, we, dataIn, clock)
+  drive([reset, 1]); clock.tick(); clock.tick()
+  drive([reset, 0])
+  let cycles = 0
+  while (halt[0].getSignal() !== 1 && cycles < 500) { clock.tick(); clock.tick(); cycles++ }
+  const reg = (k) => parseInt(read(cpu.registers.registers[k]), 2)
+  const mem = (k) => parseInt(read(ram.words[k]), 2)
+  return { cpu, rom, ram, pc, halt, cycles, reg, mem }
+}
+
+test('CPU : LDI, ADD, SUB, AND, OR, ADDI', t => {
+  const m = machine(`
+    LDI r0, 12
+    LDI r1, 10
+    ADD r0, r1     ; 22
+    SUB r1, r0     ; 10 - 22 = 244 (mod 256)
+    LDI r2, 12
+    AND r2, r1     ; 12 & 244 = 4
+    LDI r3, 3
+    OR r3, r2      ; 3 | 4 = 7
+    ADDI r0, 250   ; 22 + 250 = 16 (wraps)
+    HLT
+  `)
+  t.is(m.halt[0].getSignal(), 1)
+  t.deepEqual([m.reg(0), m.reg(1), m.reg(2), m.reg(3)], [16, 244, 4, 7])
+  t.is(m.cycles, 9)
+  t.is(read(m.pc), '00001001', 'pc holds at HLT')
+})
+
+test('CPU : ST / LD round-trip through RAM', t => {
+  const m = machine(`
+    LDI r0, 7
+    LDI r1, 20
+    ST r0, [r1]
+    LDI r0, 0
+    LD r2, [r1]
+    ADDI r1, 1
+    ST r2, [r1]
+    HLT
+  `)
+  t.is(m.mem(20), 7)
+  t.is(m.mem(21), 7)
+  t.is(m.reg(2), 7)
+  t.is(m.reg(0), 0)
+})
+
+test('CPU : loop with BEQ / JMP sums 1..5 and stores it', t => {
+  const m = machine(`
+      LDI r0, 0        ; acc
+      LDI r1, 5        ; n
+      LDI r2, 0
+      LDI r3, 1
+    loop:
+      BEQ r1, r2, done
+      ADD r0, r1
+      SUB r1, r3
+      JMP loop
+    done:
+      LDI r1, 16
+      ST r0, [r1]
+      HLT
+  `)
+  t.is(m.reg(0), 15)
+  t.is(m.mem(16), 15)
+  t.is(m.cycles, 4 + 5 * 4 + 3)
+})
+
+test('CPU : BNE loop and untaken branches fall through', t => {
+  const m = machine(`
+      LDI r0, 0
+      LDI r1, 3
+      LDI r2, 0
+      LDI r3, 1
+    loop:
+      ADDI r0, 2
+      SUB r1, r3
+      BNE r1, r2, loop
+      BEQ r0, r1, 20   ; 6 != 0: not taken
+      BNE r0, r0, 20   ; equal: not taken
+      HLT
+  `)
+  t.is(m.reg(0), 6)
+  t.is(m.halt[0].getSignal(), 1)
+})
+
+test('CPU : HLT is sticky and nothing writes during reset', t => {
+  const m = machine(`
+    LDI r0, 1
+    HLT
+    LDI r0, 2
+  `)
+  t.is(m.reg(0), 1)
+  t.is(m.cycles, 1, 'one instruction executes before HLT is fetched')
+  for (let k = 0; k < 4; k++) { m.cpu.clock.tick(); m.cpu.clock.tick() }
+  t.is(m.reg(0), 1, 'still halted')
+  t.is(read(m.pc), '00000001')
 })

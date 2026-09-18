@@ -1,5 +1,5 @@
 const { Hardware } = require('../Utility/new')
-const { wires, Wire } = require('../Connectors/transport')
+const { wires, constant } = require('../Connectors/transport')
 const { NotGate, AndGate } = require('./gates')
 
 class Decoder1x2 extends Hardware {
@@ -41,7 +41,7 @@ class DecoderNxM extends Hardware {
     super(en ? [x, en, o] : [x, o])
     const notX = wires(size)
     const inner = wires(2 ** size - 2) // lines of levels 1 .. size - 1
-    const root = en ? en[0] : new Wire(1, 'vcc')
+    const root = en ? en[0] : constant(1)
     this.internalWiring = [...notX, ...inner, ...(en ? [] : [root])]
 
     let level = [root]

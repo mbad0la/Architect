@@ -70,4 +70,26 @@ class PipoSubtractor extends Hardware {
 
 }
 
-module.exports = { HalfAdder, FullAdder, PipoAdder, PipoSubtractor }
+// o = a + 1 modulo 2^N. Bit i toggles when every lower bit is 1, so the
+// carries form a chain of ANDs: far cheaper than an adder with b = 1.
+class Incrementer extends Hardware {
+
+  constructor(a, o) {
+    if (a.length < 1 || o.length != a.length) throw new Error('Invalid Connection/s')
+    super([a, o])
+    const size = a.length
+    const chain = wires(Math.max(size - 2, 0))
+    this.internalWiring = chain
+
+    // carry[i] = a[0] & ... & a[i]; bit i+1 flips when it is 1
+    const carry = [a[0], ...chain]
+    this.components.push(new NotGate([a[0]], [o[0]]))
+    for (let i = 1; i < size; i++) {
+      if (i >= 2) this.components.push(new AndGate([carry[i - 2]], [a[i - 1]], [carry[i - 1]]))
+      this.components.push(new XorGate([carry[i - 1]], [a[i]], [o[i]]))
+    }
+  }
+
+}
+
+module.exports = { HalfAdder, FullAdder, PipoAdder, PipoSubtractor, Incrementer }

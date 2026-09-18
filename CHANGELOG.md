@@ -4,6 +4,30 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
 uses [Semantic Versioning](https://semver.org/) (0.x: minor bumps may break).
 
+## [0.5.0] - 2026-09-19
+
+### Added
+- `CPU`: single-cycle 8-bit CPU with four registers and 13 instructions (`LDI`, `LD`,
+  `ST`, `ADD`, `SUB`, `AND`, `OR`, `ADDI`, `JMP`, `BEQ`, `BNE`, `HLT`, `NOP`). Memories
+  are external: `pc` drives a `ROM`, `addr` / `dataOut` / `we` / `dataIn` drive a `RAM`.
+  `CPU.assemble(source)` turns assembly text (with labels and comments) into ROM
+  contents; `CPU.encode` builds one word.
+- `ROM`: 2^N words programmed at construction from binary strings or numbers.
+- `RegisterFile`: 2^N registers with two asynchronous read ports and one synchronous
+  write port.
+- `ProgramCounter`: reset / load / enable with that priority.
+- `MuxNx1`: 2^N-to-1 multiplexer over W-bit buses.
+- `Incrementer`: `o = a + 1` mod 2^N.
+- `Buffer` gate and `constant(sig)` wires (Vcc / Gnd) in `Connectors`.
+- `Register` takes an optional load-enable wire as a fourth argument.
+- `Hardware.gateCount()`.
+- `RAM.words` and `RegisterFile.registers` expose the stored buses for inspection.
+
+### Changed
+- `RAM` is built from enable-registers and `MuxNx1` instead of a per-word `Mux2x1`
+  and an inline read tree (same behaviour, fewer gates).
+- `Counter` is built on `Incrementer`.
+
 ## [0.4.0] - 2026-09-19
 
 ### Added

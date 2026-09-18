@@ -129,4 +129,9 @@ function wires(n, name) {
   return wireSet
 }
 
-module.exports = { Simulator, simulator, Wire, Clock, Pulse, wires }
+// A wire tied to a fixed level, for pulling an input high or low (Vcc / Gnd).
+function constant(sig, name) {
+  return new Wire(sig, name || (sig ? 'vcc' : 'gnd'))
+}
+
+module.exports = { Simulator, simulator, Wire, Clock, Pulse, wires, constant }

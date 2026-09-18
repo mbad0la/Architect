@@ -10,6 +10,13 @@ class Hardware {
     this.components = []
   }
 
+  // Number of primitive gates in this hardware. A component with no
+  // sub-components is a primitive (its logic lives in its hardware method).
+  gateCount() {
+    if (this.components.length == 0) return 1
+    return this.components.reduce((n, c) => n + c.gateCount(), 0)
+  }
+
 }
 
 module.exports = { Hardware }
