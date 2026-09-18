@@ -35,6 +35,7 @@ Let's get to business!
 * Decoders / Encoders
   * Decoder1x2
   * Decoder2x4
+  * DecoderNxM (N-bit address to 2^N one-hot lines, optional enable)
   * Encoder4x2
 * Multiplexers (N-bit buses)
   * Mux2x1
@@ -59,6 +60,8 @@ Let's get to business!
   * Register
   * ShiftRegister
   * Counter (synchronous, with synchronous reset)
+* Memory
+  * RAM (2^N words of W bits: asynchronous read, synchronous write)
 
 #### Bus convention
 
@@ -152,6 +155,25 @@ clock.tick(); clock.tick()
 console.log(read(count), read(sum), read(latched)) // 001 0110 0101
 clock.tick(); clock.tick()
 console.log(read(count), read(sum), read(latched)) // 010 0111 0110
+```
+
+A RAM: `dout` always shows the word at `addr` (asynchronous read), and on a rising edge with `we` high the word at `addr` takes `din`. Inside, a `DecoderNxM` enabled by `we` picks which word's `Register` loads, and a tree of `Mux2x1` indexed by `addr` drives `dout`.
+
+```js
+const { wires, Clock } = require('architectjs')('Connectors')
+const { RAM } = require('architectjs')('Sequential')
+const { StringIO } = require('architectjs')('IO')
+
+// 4 words x 8 bits
+const addr = wires(2), din = wires(8), we = wires(1), dout = wires(8)
+const clock = new Clock(0)
+const ram = new StringIO(new RAM(addr, din, we, dout, clock))
+
+ram.input('10', '10110001', '1'); clock.tick(); clock.tick() // write word 2
+ram.input('11', '00001111', '1'); clock.tick(); clock.tick() // write word 3
+console.log(ram.input('10', '00000000', '0')) // prints 10110001
+console.log(ram.input('11', '00000000', '0')) // prints 00001111
+console.log(ram.input('00', '00000000', '0')) // prints '' - never written, still undefined
 ```
 
 Or maybe we want to build something from existing abstractions?

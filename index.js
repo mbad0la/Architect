@@ -11,7 +11,8 @@ module.exports = function(path) {
     'Sequential': {
       ...require('./Sequential/ff'),
       ...require('./Sequential/registers'),
-      ...require('./Sequential/counters')
+      ...require('./Sequential/counters'),
+      ...require('./Sequential/memory')
     },
     'IO': require('./Utility/ioManager'),
     'Base': require('./Utility/new')

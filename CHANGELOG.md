@@ -4,6 +4,15 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
 uses [Semantic Versioning](https://semver.org/) (0.x: minor bumps may break).
 
+## [0.4.0] - 2026-09-19
+
+### Added
+- `DecoderNxM`: N-bit LSB-first address bus to 2^N one-hot lines, with an optional
+  enable wire that forces every line low.
+- `RAM`: 2^N words of W bits in `Sequential/memory.js`. Asynchronous read (`dout`
+  follows `addr`), synchronous write (`din` stored at `addr` on a rising edge with
+  `we` high). Built from `DecoderNxM`, `Mux2x1` and `Register`.
+
 ## [0.3.0] - 2026-09-19
 
 ### Added

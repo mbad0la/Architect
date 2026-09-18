@@ -5,8 +5,9 @@ const { PipoAdder, PipoSubtractor, HalfAdder, FullAdder } = require('./Combinati
 const { SRLatch, DLatch, SRFlipFlop, DFlipFlop } = require('./Sequential/ff')
 const { Register, ShiftRegister } = require('./Sequential/registers')
 const { Counter } = require('./Sequential/counters')
+const { RAM } = require('./Sequential/memory')
 const { StringIO } = require('./Utility/ioManager')
-const { Decoder1x2, Decoder2x4 } = require('./Combinational/decoders')
+const { Decoder1x2, Decoder2x4, DecoderNxM } = require('./Combinational/decoders')
 const { Encoder4x2 } = require('./Combinational/encoders')
 const { Mux2x1, Mux4x1, Demux1x2 } = require('./Combinational/multiplexers')
 const { Comparator } = require('./Combinational/comparators')
@@ -594,4 +595,108 @@ test('ALU : op change alone re-selects the result', t => {
   t.is(ioHandler.input('0110', '0011', ALU.ADD), '1001')
   t.is(ioHandler.input('0110', '0011', ALU.SUB), '0011')
   t.is(ioHandler.input('0110', '0011', ALU.AND), '0010')
+})
+
+test('DecoderNxM : one-hot line at the binary index of x', t => {
+  const x = wires(3), o = wires(8)
+  const ioHandler = new StringIO(new DecoderNxM(x, o))
+  for (let k = 0; k < 8; k++) {
+    const expected = '1'.padStart(8 - k, '0').padEnd(8, '0')
+    t.is(ioHandler.input(k.toString(2).padStart(3, '0')), expected)
+  }
+})
+
+test('DecoderNxM : 1-bit matches Decoder1x2, 2-bit matches Decoder2x4', t => {
+  const x1 = wires(1), o1 = wires(2)
+  const d1 = new StringIO(new DecoderNxM(x1, o1))
+  t.is(d1.input('0'), '01')
+  t.is(d1.input('1'), '10')
+  const x2 = wires(2), o2 = wires(4)
+  const d2 = new StringIO(new DecoderNxM(x2, o2))
+  t.is(d2.input('00'), '0001')
+  t.is(d2.input('01'), '0010')
+  t.is(d2.input('10'), '0100')
+  t.is(d2.input('11'), '1000')
+})
+
+test('DecoderNxM : enable forces every line low', t => {
+  const x = wires(2), en = wires(1), o = wires(4)
+  const ioHandler = new StringIO(new DecoderNxM(x, o, en))
+  t.is(ioHandler.input('10', '1'), '0100')
+  t.is(ioHandler.input('10', '0'), '0000')
+  t.is(ioHandler.input('11', '1'), '1000')
+})
+
+test('DecoderNxM -> Encoder4x2 round-trips', t => {
+  const x = wires(2), lines = wires(4), o = wires(2)
+  new DecoderNxM(x, lines)
+  new Encoder4x2(lines, o)
+  const ioHandler = new StringIO({ ioMapping: [x, o] })
+  for (const k of ['00', '01', '10', '11']) t.is(ioHandler.input(k), k)
+})
+
+test('RAM : write on the rising edge with we high, read asynchronously', t => {
+  const addr = wires(2), din = wires(4), we = wires(1), dout = wires(4), clock = new Clock(0)
+  const ram = new RAM(addr, din, we, dout, clock)
+  t.is(ram.clock, clock)
+  const ioHandler = new StringIO(ram)
+  t.is(ioHandler.input('00', '1010', '1'), '', 'undefined before the first write')
+  clock.tick(); clock.tick()
+  t.is(ioHandler.input('00', '0000', '0'), '1010')
+  ioHandler.input('11', '0110', '1'); clock.tick(); clock.tick()
+  ioHandler.input('01', '1111', '1'); clock.tick(); clock.tick()
+  t.is(ioHandler.input('00', '0000', '0'), '1010')
+  t.is(ioHandler.input('01', '0000', '0'), '1111')
+  t.is(ioHandler.input('11', '0000', '0'), '0110')
+  t.is(ioHandler.input('10', '0000', '0'), '', 'never written')
+})
+
+test('RAM : we low holds every word; writes wait for the edge', t => {
+  const addr = wires(1), din = wires(2), we = wires(1), dout = wires(2), clock = new Clock(0)
+  const ioHandler = new StringIO(new RAM(addr, din, we, dout, clock))
+  ioHandler.input('0', '01', '1'); clock.tick(); clock.tick()
+  ioHandler.input('1', '10', '1'); clock.tick(); clock.tick()
+  t.is(ioHandler.input('0', '11', '0'), '01')
+  clock.tick(); clock.tick()
+  t.is(ioHandler.input('0', '11', '0'), '01', 'we low: no write')
+  t.is(ioHandler.input('0', '11', '1'), '01', 'we high but no edge yet')
+  clock.tick()
+  t.is(read(dout), '11', 'written on the rising edge')
+  t.is(ioHandler.input('1', '11', '0'), '10', 'other word untouched')
+})
+
+test('RAM : overwrite and 8 x 8 sweep', t => {
+  const addr = wires(3), din = wires(8), we = wires(1), dout = wires(8), clock = new Clock(0)
+  const ioHandler = new StringIO(new RAM(addr, din, we, dout, clock))
+  const word = (k) => (k * 37 % 256).toString(2).padStart(8, '0')
+  for (let k = 0; k < 8; k++) {
+    ioHandler.input(k.toString(2).padStart(3, '0'), word(k), '1')
+    clock.tick(); clock.tick()
+  }
+  for (let k = 0; k < 8; k++) {
+    t.is(ioHandler.input(k.toString(2).padStart(3, '0'), '00000000', '0'), word(k))
+  }
+  ioHandler.input('101', '11111111', '1'); clock.tick(); clock.tick()
+  t.is(ioHandler.input('101', '00000000', '0'), '11111111')
+  t.is(ioHandler.input('100', '00000000', '0'), word(4))
+})
+
+test('Composition : Counter addresses a RAM', t => {
+  const clock = new Clock(0)
+  const reset = wires(1), addr = wires(2), din = wires(2), we = wires(1), dout = wires(2)
+  new Counter(reset, addr, clock)
+  new RAM(addr, din, we, dout, clock)
+  const ioHandler = new StringIO({ ioMapping: [reset, din, we, dout] })
+  ioHandler.input('1', '00', '0'); clock.tick(); clock.tick()
+  // walk the addresses, storing each address's complement at it
+  for (const value of ['11', '10', '01', '00']) {
+    ioHandler.input('0', value, '1')
+    clock.tick(); clock.tick()
+  }
+  const trace = []
+  for (let k = 0; k < 4; k++) {
+    trace.push(ioHandler.input('0', '00', '0'))
+    clock.tick(); clock.tick()
+  }
+  t.deepEqual(trace, ['11', '10', '01', '00'])
 })
